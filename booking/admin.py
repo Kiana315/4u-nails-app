@@ -9,7 +9,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 @admin.register(CustomUser)
 class CustomUserAdmin(BaseUserAdmin):
     fieldsets = BaseUserAdmin.fieldsets + (
-        ("Additional Info", {'fields': ('role', 'phone', 'email')}),
+        ("Additional Info", {'fields': ('role', 'phone')}),
     )
     list_display = ('username', 'role', 'phone', 'email', 'is_staff', 'is_active')
     list_filter = ('role', 'is_staff', 'is_active')
