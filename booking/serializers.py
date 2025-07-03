@@ -11,7 +11,7 @@ class UserSerializer(serializers.ModelSerializer):
 class ServiceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Service
-        fields = ['id', 'name', 'description', 'price', 'image']
+        fields = ['id', 'name']
 
 # 时间段序列化器
 class TimeSlotSerializer(serializers.ModelSerializer):

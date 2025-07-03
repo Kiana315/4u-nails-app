@@ -22,7 +22,7 @@ class CustomUserAdmin(BaseUserAdmin):
 # -----------------------------
 @admin.register(Service)
 class ServiceAdmin(admin.ModelAdmin):
-    list_display = ('name', 'price', 'description')
+    list_display = ('name',)
     search_fields = ('name',)
     ordering = ('name',)
 
