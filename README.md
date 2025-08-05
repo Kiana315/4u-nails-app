@@ -19,7 +19,9 @@ npm install
 
 ## Start development server
 npm run dev
-[Visit the app at](http://localhost:5173/)
+
+## Visit the app at:
+http://localhost:5173/
 
 # License
 MIT License
