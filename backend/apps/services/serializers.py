@@ -1,0 +1,16 @@
+from rest_framework import serializers
+from .models import Service
+
+class ServiceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Service
+        fields = [
+            "id",
+            "name",
+            "description",
+            "duration",
+            "category",
+            "target_audience",
+            "image",
+            "is_active",
+        ]
