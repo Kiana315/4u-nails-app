@@ -76,6 +76,25 @@ export default function ServicesAdminPage() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  const previewImage = useMemo(() => (isValidUrl(form.image) ? form.image : ""), [form.image]);
+
+  // 只拿当前真正存在的分类
+  const existingCategories = new Set(
+    items
+      .map((s) => s.category)
+      .filter(Boolean)
+  );
+
+  // 按固定顺序筛选出来要显示的 tabs
+  const categories = CATEGORY_ORDER.filter(
+    (c) => c === "all" || existingCategories.has(c)
+  );
+
+  // 根据 tab 筛选列表
+  const filteredItems =
+    selectedCategory === "all"
+      ? items
+      : items.filter((s) => s.category === selectedCategory);
 
   async function reload() {
     setError("");
@@ -315,6 +334,17 @@ export default function ServicesAdminPage() {
               <Badge variant="secondary">{items.length} total</Badge>
             </div>
 
+            <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="mb-6">
+              <TabsList className="grid w-full gap-2 grid-cols-[repeat(auto-fit,minmax(120px,1fr))]">
+                {categories.map((category) => (
+                  <TabsTrigger key={category} value={category} className="capitalize">
+                    {category}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              <TabsContent value={selectedCategory} />
+            </Tabs>
+            
             {loading ? (
               <Card className="card-elegant">
                 <CardContent className="p-6">
