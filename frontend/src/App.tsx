@@ -15,6 +15,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import NotFound from "./pages/NotFound";
 import ServicesPublicPage from "./pages/public/ServicesPublic";
 import ServicesAdminPage from "./pages/admin/ServicesAdmin";
+import TechAdminPage from "./pages/admin/TechAdmin";
 
 
 
@@ -53,7 +54,7 @@ const App = () => {
                 </RequireAdmin>
               }
             />
-
+            <Route path="/admin/technicians" element={<TechAdminPage />} />
             {/* <Route path="/admin/services" element={<ServicesAdminPage />} /> */}
           </Routes>
         </TooltipProvider>

@@ -48,6 +48,9 @@ const mapFromBackend = (s: BackendService): Service => ({
   isActive: s.is_active ?? true,
 });
 
+
+
+
 // -----------------------
 // 3) 组件
 // -----------------------
@@ -74,27 +77,31 @@ export function ServicesTable() {
   // 有后端数据就用后端；出错/没有就用 mock
   const allServices: Service[] = (isError || !mappedFromApi?.length) ? mockServices : mappedFromApi;
 
-  // // 同时展示 mock + 后端（并且按 name 去重，避免重复）
-  //   const apiServices = mappedFromApi ?? [];
 
-  //   const allServices: Service[] = (() => {
-  //     // 如果后端报错，就只展示 mock（你想也可以仍然展示 mock）
-  //     if (isError) return mockServices;
+  // const categories: string[] = ['all', ...Array.from(new Set(allServices.map(s => s.category)))];
+  const CATEGORY_ORDER = [
+  'all',
+  'Manicure',
+  'Pedicure',
+  'Nail Art',
+  'Waxing',
+  'Other',
+];
 
-  //     // 合并：mock 在前，api 在后（或反过来都行）
-  //     const merged = [...mockServices, ...apiServices];
+const categories = [
+  'all',
+  ...Array.from(new Set(allServices.map(s => s.category))),
+].sort((a, b) => {
+  const ia = CATEGORY_ORDER.indexOf(a);
+  const ib = CATEGORY_ORDER.indexOf(b);
 
-  //     // 去重：用 name（或 id）作为唯一键
-  //     const map = new Map<string, Service>();
-  //     for (const s of merged) {
-  //       const key = s.name.trim().toLowerCase(); // 用 name 去重最直观
-  //       map.set(key, s); // 后来的会覆盖前面的（即 API 覆盖 mock）
-  //     }
-  //     return Array.from(map.values());
-  //   })();
+  // 不在表里的放最后
+  if (ia === -1 && ib === -1) return a.localeCompare(b);
+  if (ia === -1) return 1;
+  if (ib === -1) return -1;
+  return ia - ib;
+});
 
-    
-  const categories: string[] = ['all', ...Array.from(new Set(allServices.map(s => s.category)))];
   const filteredServices = selectedCategory === 'all'
     ? allServices
     : allServices.filter((s) => s.category === selectedCategory);
@@ -125,15 +132,29 @@ export function ServicesTable() {
         </div>
 
         <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="mb-12">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 mb-8">
+          <TabsList
+            className="
+              grid
+              w-full
+              gap-2
+              grid-cols-[repeat(auto-fit,minmax(120px,1fr))]
+              mb-8
+            "
+          >
             {categories.map((category) => (
-              <TabsTrigger key={category} value={category} className="capitalize">
+              <TabsTrigger
+                key={category}
+                value={category}
+                className="capitalize"
+              >
                 {category}
               </TabsTrigger>
             ))}
           </TabsList>
-          <TabsContent value={selectedCategory} /> {/* 保持 Tabs 结构完整 */}
+
+          <TabsContent value={selectedCategory} />
         </Tabs>
+
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           {filteredServices.map((service) => (

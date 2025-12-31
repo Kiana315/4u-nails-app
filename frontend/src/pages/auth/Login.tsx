@@ -48,6 +48,13 @@ export default function Login() {
   });
 
   useEffect(() => {
+    const access = localStorage.getItem("access");
+    if (access && access.trim()) {
+      navigate("/admin", { replace: true });
+    }
+  }, [navigate]);
+  
+  useEffect(() => {
     setMeta("登录 | Bella Nails", "登录 Bella Nails，美甲预约管理更便捷");
   }, []);
 
@@ -61,11 +68,16 @@ export default function Login() {
       localStorage.setItem("access", access);
       if (refresh) localStorage.setItem("refresh", refresh);
 
-      toast({ title: "登录成功", description: "欢迎回来！" });
+      toast({ title: "登录成功", 
+        description: "欢迎回来！", 
+        duration: 3000, });
       navigate("/admin", { replace: true });
 
     } catch (err: any) {
-      toast({ title: "登录失败", description: err?.message || "请检查邮箱与密码", variant: "destructive" as any });
+      toast({ title: "登录失败", 
+        description: "请检查邮箱与密码", 
+        variant: "destructive" as any,
+        duration: 5000, });
     } finally {
       setLoading(false);
     }

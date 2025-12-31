@@ -1,8 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Users, Clock, Plus, Palette } from 'lucide-react';
+import { toast } from "@/hooks/use-toast";
+import { Calendar, Users, Clock, Plus, HandHeart, LogOut } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
+import { auth } from "@/lib/api";
 
 // Mock data for dashboard
 const mockStats = {
@@ -49,9 +51,22 @@ const mockTodayAppointments = [
 
 
 
-
-
 export default function AdminDashboard() {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    auth.logout();
+
+    toast({
+      title: "Logged out",
+      description: "You have been successfully logged out.",
+      duration: 3000,
+    });
+
+    navigate("/login", { replace: true });
+  };
+
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'confirmed': return 'bg-success text-success-foreground';
@@ -64,7 +79,7 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between mb-8">
           <div>
             <h1 className="font-serif text-3xl font-semibold text-foreground mb-2">
               Dashboard
@@ -74,12 +89,13 @@ export default function AdminDashboard() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button className="btn-hero">
+            <Button className="btn-hero hover:translate-y-0">
               <Plus className="w-4 h-4 mr-2" />
               Quick Booking
             </Button>
 
-            <Button className="btn-hero" >
+            <Button variant='outline' onClick={handleLogout}>
+              <LogOut className="w-4 h-4 mr-2" />
               Logout
             </Button>
           </div>
@@ -105,8 +121,8 @@ export default function AdminDashboard() {
           <Card className="card-elegant">
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-warning/10 rounded-lg flex items-center justify-center">
-                  <Clock className="w-6 h-6 text-warning" />
+                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                  <Clock className="w-6 h-6 text-primary" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Pending</p>
@@ -119,8 +135,8 @@ export default function AdminDashboard() {
           <Card className="card-elegant">
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-accent/50 rounded-lg flex items-center justify-center">
-                  <Users className="w-6 h-6 text-accent-foreground" />
+                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                  <Users className="w-6 h-6 text-primary" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Completed</p>
@@ -134,7 +150,7 @@ export default function AdminDashboard() {
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Today's Appointments */}
           <div className="lg:col-span-2">
-            <Card className="card-elegant">
+            <Card className="card-elegant-no-hover">
               <CardHeader>
                 <CardTitle>Today's Appointments</CardTitle>
               </CardHeader>
@@ -171,7 +187,7 @@ export default function AdminDashboard() {
 
           {/* Quick Actions */}
           <div>
-            <Card className="card-elegant">
+            <Card className="card-elegant-no-hover">
               <CardHeader>
                 <CardTitle>Quick Actions</CardTitle>
               </CardHeader>
@@ -181,21 +197,22 @@ export default function AdminDashboard() {
                   New Appointment
                 </Button>
                 <Button className="w-full justify-start" variant="outline">
-                  <Users className="w-4 h-4 mr-2" />
-                  Manage Staff
-                </Button>
-                <Button className="w-full justify-start" variant="outline">
                   <Calendar className="w-4 h-4 mr-2" />
                   View Schedule
                 </Button>
-                <Button className="w-full justify-start" variant="outline">
+                <Button className="w-full justify-start" variant="outline" onClick={() => navigate("/admin/technicians")}>
+                  <Users className="w-4 h-4 mr-2" />
+                  Manage Staff
+                </Button>
+                <Button className="w-full justify-start" variant="outline" onClick={() => navigate("/admin/services")}>
+                  <HandHeart className="w-4 h-4 mr-2" />
                   Manage Services
                 </Button>
               </CardContent>
             </Card>
 
             {/* TODO: Phase 2 Features */}
-            <Card className="card-elegant mt-6">
+            <Card className="card-elegant-no-hover mt-6">
               <CardHeader>
                 <CardTitle>Coming Soon</CardTitle>
               </CardHeader>

@@ -3,6 +3,7 @@ export type Service = {
   name: string;
   description: string;
   duration: number;
+  category: string;
   target_audience: string;
   image: string;
   is_active: boolean;
