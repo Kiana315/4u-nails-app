@@ -54,7 +54,11 @@ const App = () => {
                 </RequireAdmin>
               }
             />
-            <Route path="/admin/technicians" element={<TechAdminPage />} />
+            <Route path="/admin/technicians"
+                element={
+                <RequireAdmin>
+                  <TechAdminPage />
+                </RequireAdmin>} />
             {/* <Route path="/admin/services" element={<ServicesAdminPage />} /> */}
           </Routes>
         </TooltipProvider>

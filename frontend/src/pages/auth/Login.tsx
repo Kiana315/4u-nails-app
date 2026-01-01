@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { auth } from "@/lib/api";
-import axios from "axios";
+
 
 const schema = z.object({
   username: z.string().min(1, { message: "请输入用户名" }),
@@ -55,33 +55,35 @@ export default function Login() {
   }, [navigate]);
   
   useEffect(() => {
-    setMeta("登录 | Bella Nails", "登录 Bella Nails，美甲预约管理更便捷");
+    setMeta("登录 | 4U Nails", "登录 4U Nails，美甲预约管理更便捷");
   }, []);
 
   const onSubmit = async (values: FormValues) => {
+    setLoading(true);
     try {
-      setLoading(true);
       const { data } = await auth.login(values);
-      const access = data?.access ?? data?.token ?? data?.access_token;
-      const refresh = data?.refresh ?? data?.refresh_token ?? "";
-      if (!access) throw new Error("登录失败，请检查账号或稍后再试");
-      localStorage.setItem("access", access);
-      if (refresh) localStorage.setItem("refresh", refresh);
 
-      toast({ title: "登录成功", 
-        description: "欢迎回来！", 
-        duration: 3000, });
+      toast({ title: "登录成功", description: "欢迎回来！", duration: 3000 });
       navigate("/admin", { replace: true });
-
     } catch (err: any) {
-      toast({ title: "登录失败", 
-        description: "请检查邮箱与密码", 
+      // 如果后端有 detail，用它；否则给默认
+      const msg =
+        err?.response?.data?.detail ||
+        err?.message ||
+        "用户名或密码错误";
+
+      toast({
+        title: "登录失败",
+        description: msg,
         variant: "destructive" as any,
-        duration: 5000, });
+        duration: 2000,
+      });
     } finally {
-      setLoading(false);
+      console.log("FINALLY RUN");
+      setLoading(false); // ✅ 必须执行
     }
   };
+
 
   return (
     <main className="min-h-screen flex items-center justify-center px-4 py-24">
