@@ -31,22 +31,33 @@ export function ServiceSelection({ onNext, preselectedService }: ServiceSelectio
     return [];
   })();
 
-  // ✅ 只处理一次 preselected（避免重复 add）
+  // ✅ 只处理一次 preselected（避免每次渲染都把它“强制选中”，导致用户无法取消）
   const preselectHandled = useRef(false);
-  useEffect(() => {
-    if (!preselectHandled.current && preselectedService) {
-      addService(preselectedService);
-      preselectHandled.current = true;
-    }
-  }, [preselectedService, addService]);
 
-  const isSelected = (id: string) => selectedServices.some((s) => s.id === id);
+  useEffect(() => {
+    if (preselectHandled.current) return;
+    if (!preselectedService) return;
+
+    // 可选：只有当它确实存在于当前可选 services 中才进行预选（避免脏 state）
+    const existsInList =
+      availableServices.length === 0 ||
+      availableServices.some((s) => String(s.id) === String(preselectedService.id));
+
+    if (existsInList) {
+      addService(preselectedService);
+    }
+
+    preselectHandled.current = true;
+  }, [preselectedService, addService, availableServices]);
+
+  const isSelected = (id: string | number) =>
+    selectedServices.some((s) => String(s.id) === String(id));
 
   const toggle = (service: Service) => {
     isSelected(service.id) ? removeService(service.id) : addService(service);
   };
 
-  const totalDuration = selectedServices.reduce((sum, s) => sum + s.duration, 0);
+  const totalDuration = selectedServices.reduce((sum, s) => sum + (s.duration ?? 0), 0);
 
   return (
     <div className="space-y-8">
@@ -75,54 +86,69 @@ export function ServiceSelection({ onNext, preselectedService }: ServiceSelectio
 
       {!isLoading && !isError && availableServices.length > 0 && (
         <div className="grid md:grid-cols-2 gap-6">
-          {availableServices.map((service) => (
-            <Card
-              key={service.id}
-              className={`card-elegant group overflow-hidden cursor-pointer transition ${
-                isSelected(service.id) ? "ring-2 ring-primary" : "hover:shadow-elegant"
-              }`}
-              onClick={() => toggle(service)}
-            >
-              <div className="aspect-video overflow-hidden rounded-t-2xl">
-                <img
-                  src={service.image || "/placeholder.svg"}
-                  alt={service.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  loading="lazy"
-                />
-              </div>
+          {availableServices.map((service) => {
+            const selected = isSelected(String(service.id));
 
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center space-x-3">
-                    <Checkbox checked={isSelected(service.id)} onCheckedChange={() => toggle(service)} />
-                    <h3 className="font-serif text-xl font-semibold text-card-foreground">
-                      {service.name}
-                    </h3>
-                  </div>
-                  <Badge variant="secondary" className="ml-2">
-                    {service.targetAudience ?? "General"}
-                  </Badge>
+            return (
+              <Card
+                key={service.id}
+                className={`card-elegant group overflow-hidden cursor-pointer transition ${
+                  selected ? "ring-2 ring-primary" : "hover:shadow-elegant"
+                }`}
+                onClick={() => toggle(service)}
+              >
+                <div className="aspect-video overflow-hidden rounded-t-2xl">
+                  <img
+                    src={service.image || "/placeholder.svg"}
+                    alt={service.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    loading="lazy"
+                  />
                 </div>
 
-                <p className="text-muted-foreground mb-4 leading-relaxed">
-                  {service.description || ""}
-                </p>
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center space-x-3">
+                      {/* ✅ 防止 checkbox 点击冒泡到 Card 导致 toggle 两次 */}
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onTouchStart={(e) => e.stopPropagation()}
+                      >
+                        <Checkbox
+                          checked={selected}
+                          onCheckedChange={() => toggle(service)}
+                        />
+                      </div>
 
-                <div className="flex items-center justify-between mb-2 text-sm text-muted-foreground">
-                  <div className="flex items-center">
-                    <Clock className="w-4 h-4 mr-1" />
-                    {service.duration} min
-                  </div>
-                  <div className="flex items-center">
-                    <Users className="w-4 h-4 mr-1" />
-                    {service.targetAudience ?? "Everyone"}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                      <h3 className="font-serif text-xl font-semibold text-card-foreground">
+                        {service.name}
+                      </h3>
+                    </div>
 
-          ))}
+                    <Badge variant="secondary" className="ml-2">
+                      {service.category ?? "General"}
+                    </Badge>
+                  </div>
+
+                  <p className="text-muted-foreground mb-4 leading-relaxed">
+                    {service.description || ""}
+                  </p>
+
+                  <div className="flex items-center justify-between mb-2 text-sm text-muted-foreground">
+                    <div className="flex items-center">
+                      <Clock className="w-4 h-4 mr-1" />
+                      {service.duration} min
+                    </div>
+                    <div className="flex items-center">
+                      <Users className="w-4 h-4 mr-1" />
+                      {service.targetAudience ?? "Everyone"}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 
@@ -135,6 +161,16 @@ export function ServiceSelection({ onNext, preselectedService }: ServiceSelectio
                 Selected Services
               </h3>
               <span className="text-sm">{totalDuration} min</span>
+            </div>
+
+            {/* 可选：给用户一个明确的“取消所有” */}
+            <div className="mt-4 flex justify-end">
+              <Button
+                variant="outline"
+                onClick={() => selectedServices.forEach((s) => removeService(String(s.id)))}
+              >
+                Clear All
+              </Button>
             </div>
           </CardContent>
         </Card>

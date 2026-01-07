@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useLocation, Navigate } from 'react-router-dom';
 import { Navbar } from '@/components/common/Navbar';
 import { ServiceSelection } from '@/components/booking/ServiceSelection';
@@ -8,6 +8,7 @@ import { CustomerInfo } from '@/components/booking/CustomerInfo';
 import { BookingSummary } from '@/components/booking/BookingSummary';
 import { useBookingStore } from '@/stores/bookingStore';
 import { Progress } from '@/components/ui/progress';
+
 
 const steps = [
   { id: 1, title: 'Select Services', component: ServiceSelection },
@@ -23,21 +24,38 @@ const CurrentComponent = () => (
 export default function BookingFlow() {
   const [currentStep, setCurrentStep] = useState(1);
   const location = useLocation();
+  const injectedRef = useRef(false);
   const { selectedServices } = useBookingStore();
   const { clearBooking } = useBookingStore();
 
- 
-  useEffect(() => {
-    clearBooking();
-  }, [clearBooking]);
 
   // Handle preselected service from services page
   const preselectedService = location.state?.preselectedService;
 
   const currentStepData = steps.find(step => step.id === currentStep);
   const CurrentComponent = currentStepData?.component;
-  
+
   const progress = (currentStep / steps.length) * 100;
+
+  const { setSelectedServices, setSelectedTimeSlot, setSelectedDate, setSelectedTechnician } =
+    useBookingStore();
+
+  useEffect(() => {
+    if (injectedRef.current) return;
+
+    const pre = (location.state as any)?.preselectedService;
+    if (pre?.id) {
+      // ✅ 覆盖式设置：避免叠加
+      setSelectedServices([pre]);
+
+      // ✅ 从 services 页面进来时，也顺便清掉后面步骤的残留（否则会“带着上次的日期/时间”）
+      setSelectedDate(null);
+      setSelectedTimeSlot(null);
+      setSelectedTechnician(null);
+    }
+
+    injectedRef.current = true;
+  }, [location.state, setSelectedServices, setSelectedDate, setSelectedTimeSlot, setSelectedTechnician]);
 
   const nextStep = () => {
     if (currentStep < steps.length) {

@@ -1,5 +1,8 @@
+export type WeekdayKey = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
+
 export type Technician = {
-  id: number;
+  id: string;
   name: string;
   active: boolean;
+  working_days: WeekdayKey[]; // ✅ 新增
 };

@@ -43,12 +43,12 @@ export function Hero() {
               </Button>
             </Link>
             
-            <button 
-              onClick={() => document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' })}
+            <Link
+              to="/services"
               className="text-primary-foreground hover:text-primary-foreground/80 font-medium underline-offset-4 hover:underline transition-all duration-300"
             >
               Explore Our Services
-            </button>
+            </Link>
           </div>
 
           {/* Trust indicators */}

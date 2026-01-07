@@ -64,6 +64,9 @@ def get_daily_working_intervals(date_obj) -> List[tuple]:
         return []
     day_key = _get_day_key(date_obj)
     opening = _parse_intervals((cfg.opening_hours or {}).get(day_key, []))
+    print("DEBUG day_key:", day_key, "opening_raw:", (cfg.opening_hours or {}).get(day_key, []))
+    print("DEBUG holidays:", cfg.holidays)
+
     breaks = _parse_intervals((cfg.breaks or {}).get(day_key, []))
     if breaks:
         opening = _subtract_intervals(opening, breaks)
@@ -71,33 +74,59 @@ def get_daily_working_intervals(date_obj) -> List[tuple]:
 
 
 def get_technician_free_intervals(technician: Technician, date_obj) -> List[tuple]:
-    base = get_daily_working_intervals(date_obj)
-    # subtract appointments for this technician
+    # 全店营业时间（已扣 holiday + breaks）
+    store_open = get_daily_working_intervals(date_obj)
+    if not store_open:
+        return []
+
+    # 技师上班时间（单独配置）
+    tech_work = get_technician_working_intervals(technician, date_obj)
+    if not tech_work:
+        return []
+
+    # 交集 = 当天这个技师理论可上班时间
+    base = _intersect_intervals(store_open, tech_work)
+    if not base:
+        return []
+
+    # 扣掉已有预约
     apps = Appointment.objects.filter(technician=technician, date=date_obj).values("start_time", "end_time")
     busy = [(a["start_time"], a["end_time"]) for a in apps]
     if busy:
         base = _subtract_intervals(base, busy)
+
     return base
 
 
-def compute_available_slots(date_obj, service: Service, technician: Optional[Technician] = None, step_min: int = 15):
+
+def compute_available_slots(date_obj, service: Service, technician: Optional[Technician] = None, step_min: int = 30):
+    """
+    返回可预约的开始时间列表（time objects）
+    - step_min=30: 半小时一个 slot
+    - 默认所有 active 技师都能做所有 services
+    """
+    print("DEBUG active tech count:", Technician.objects.filter(active=True).count())
+
+    duration_min = getattr(service, "duration_min", None) or getattr(service, "duration", None) or 30
+    duration_min = int(duration_min)
+
     if technician:
-        if not technician.active or (service and not technician.skills.filter(pk=service.id).exists()):
+        if not getattr(technician, "active", True):
             return []
         free = get_technician_free_intervals(technician, date_obj)
-        return _generate_slots(free, service.duration_min, step_min)
-    # union across all skilled active technicians
+        return _generate_slots(free, duration_min, step_min)
+
     slots_union = set()
-    for tech in Technician.objects.filter(active=True, skills=service):
+    for tech in Technician.objects.filter(active=True):
         free = get_technician_free_intervals(tech, date_obj)
-        for t in _generate_slots(free, service.duration_min, step_min):
+        for t in _generate_slots(free, duration_min, step_min):
             slots_union.add(t)
+
     return sorted(list(slots_union))
 
 
 def is_slot_available(date_obj, start_time, end_time, service: Service, technician: Optional[Technician]):
     if technician:
-        # conflict with technician appointments
         conflict = Appointment.objects.filter(
             technician=technician,
             date=date_obj,
@@ -106,15 +135,34 @@ def is_slot_available(date_obj, start_time, end_time, service: Service, technici
         ).exists()
         if conflict:
             return False
-        # within working intervals and not holiday/breaks
+
         free = get_technician_free_intervals(technician, date_obj)
         for s, e in free:
             if s <= start_time and end_time <= e:
                 return True
         return False
-    else:
-        # at least one skilled tech can take it
-        for tech in Technician.objects.filter(active=True, skills=service):
-            if is_slot_available(date_obj, start_time, end_time, service, technician=tech):
-                return True
-        return False
+
+    # ✅ 默认所有 active tech 都能做
+    for tech in Technician.objects.filter(active=True):
+        if is_slot_available(date_obj, start_time, end_time, service, technician=tech):
+            return True
+    return False
+
+
+def get_technician_working_intervals(technician: Technician, date_obj) -> List[tuple]:
+    """
+    返回技师当天上班的时间段（不含全店break/holiday过滤；那在全店层做）
+    """
+    weekly = getattr(technician, "weekly_hours", None) or {}
+    day_key = _get_day_key(date_obj)
+    return _parse_intervals(weekly.get(day_key, []))
+
+def _intersect_intervals(a: List[tuple], b: List[tuple]) -> List[tuple]:
+    result = []
+    for a_start, a_end in a:
+        for b_start, b_end in b:
+            start = max(a_start, b_start)
+            end = min(a_end, b_end)
+            if start < end:
+                result.append((start, end))
+    return result

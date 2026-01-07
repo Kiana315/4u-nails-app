@@ -190,7 +190,6 @@ const categories = [
                     {service.targetAudience}
                   </div>
                 </div>
-
                 <Link to="/book" state={{ preselectedService: service }}>
                   <Button className="w-full btn-hero">Book This Service</Button>
                 </Link>

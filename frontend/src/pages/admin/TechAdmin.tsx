@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { admin as adminApi } from "@/lib/api";
 
@@ -8,9 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
 
-import { ArrowLeft, Plus, Trash2, RefreshCw, User } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, RefreshCw, User, CalendarDays, Settings2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,11 +24,46 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+type WeekdayKey = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
+
+const WEEKDAYS: { key: WeekdayKey; label: string; short: string }[] = [
+  { key: "mon", label: "Monday", short: "Mon" },
+  { key: "tue", label: "Tuesday", short: "Tue" },
+  { key: "wed", label: "Wednesday", short: "Wed" },
+  { key: "thu", label: "Thursday", short: "Thu" },
+  { key: "fri", label: "Friday", short: "Fri" },
+  { key: "sat", label: "Saturday", short: "Sat" },
+  { key: "sun", label: "Sunday", short: "Sun" },
+];
+
 type Technician = {
   id: number;
   name: string;
   active: boolean;
+  working_days?: WeekdayKey[]; // ✅ 新增
 };
+
+function normalizeDays(days: any): WeekdayKey[] {
+  if (!Array.isArray(days)) return [];
+  const valid = new Set(WEEKDAYS.map((d) => d.key));
+  return days.map(String).filter((d) => valid.has(d as WeekdayKey)) as WeekdayKey[];
+}
+
+function formatDays(days: WeekdayKey[]) {
+  if (!days || days.length === 0) return "No days set";
+  const order = WEEKDAYS.map((d) => d.key);
+  const sorted = [...days].sort((a, b) => order.indexOf(a) - order.indexOf(b));
+  return sorted.map((k) => WEEKDAYS.find((d) => d.key === k)!.short).join(", ");
+}
 
 export default function TechAdminPage() {
   const navigate = useNavigate();
@@ -35,16 +71,36 @@ export default function TechAdminPage() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  // Create form
   const [name, setName] = useState("");
   const [active, setActive] = useState(true);
+  const [newWorkingDays, setNewWorkingDays] = useState<WeekdayKey[]>(["mon", "tue", "wed", "thu", "fri"]); // 默认周一到周五
   const [toDelete, setToDelete] = useState<Technician | null>(null);
+
+  // Edit working days dialog
+  const [editing, setEditing] = useState<Technician | null>(null);
+  const [editingDays, setEditingDays] = useState<WeekdayKey[]>([]);
+  const [editSaving, setEditSaving] = useState(false);
+
+  const allDays = useMemo(() => WEEKDAYS.map((d) => d.key), []);
+
+  function toggleDay(setter: (fn: (prev: WeekdayKey[]) => WeekdayKey[]) => void, day: WeekdayKey) {
+    setter((prev) => (prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]));
+  }
 
   async function reload() {
     setError("");
     setLoading(true);
     try {
-      const list = await adminApi.getTechnicians(); // 期望返回 Technician[]
-      setItems(Array.isArray(list) ? list : []);
+      const list = await adminApi.getTechnicians(); // Technician[]
+      const normalized: Technician[] = (Array.isArray(list) ? list : []).map((t: any) => ({
+        id: t.id,
+        name: t.name,
+        active: !!t.active,
+        working_days: normalizeDays(t.working_days),
+      }));
+      setItems(normalized);
     } catch (e: any) {
       setError(e?.message ?? String(e));
     } finally {
@@ -61,9 +117,14 @@ export default function TechAdminPage() {
     setError("");
     setSaving(true);
     try {
-      await adminApi.createTechnician({ name, active });
+      await adminApi.createTechnician({
+        name,
+        active,
+        working_days: newWorkingDays, // ✅ 发送工作日
+      });
       setName("");
       setActive(true);
+      setNewWorkingDays(["mon", "tue", "wed", "thu", "fri"]);
       toast({ title: "Technician created", description: "Staff member added." });
       await reload();
     } catch (e: any) {
@@ -85,7 +146,7 @@ export default function TechAdminPage() {
       await adminApi.updateTechnician(String(t.id), { active: !t.active });
       toast({
         title: !t.active ? "Activated" : "Deactivated",
-        description: `${t.name} is now ${!t.active ? "active" : "inactive"}.`,
+        description: `${t.name} is now ${!t.active ? "active" : "inactive"}.`, duration: 6000,
       });
       await reload();
     } catch (e: any) {
@@ -103,7 +164,7 @@ export default function TechAdminPage() {
     setError("");
     try {
       await adminApi.deleteTechnician(id);
-      toast({ title: "Deleted", description: "Technician removed." });
+      toast({ title: "Deleted", description: "Technician removed.", duration: 6000 });
       await reload();
     } catch (e: any) {
       setError(e?.message ?? String(e));
@@ -116,16 +177,42 @@ export default function TechAdminPage() {
     }
   }
 
+  function openEditDays(t: Technician) {
+    setEditing(t);
+    setEditingDays(normalizeDays(t.working_days));
+  }
+
+  async function saveEditDays() {
+    if (!editing) return;
+    setError("");
+    setEditSaving(true);
+    try {
+      await adminApi.updateTechnician(String(editing.id), { working_days: editingDays });
+      toast({ title: "Saved", description: `Updated working days for ${editing.name}.` });
+      setEditing(null);
+      await reload();
+    } catch (e: any) {
+      setError(e?.message ?? String(e));
+      toast({
+        title: "Save failed",
+        description: e?.message ?? "Please try again.",
+        variant: "destructive" as any,
+        duration: 6000,
+      });
+    } finally {
+      setEditSaving(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between mb-8">
           <div className="flex items-center gap-3">
-            
             <div>
               <h1 className="font-serif text-3xl font-semibold text-foreground">Manage Staff</h1>
-              <p className="text-muted-foreground mt-1">Add, enable/disable, and remove technicians.</p>
+              <p className="text-muted-foreground mt-1">Add, enable/disable, set working days, and remove technicians.</p>
             </div>
           </div>
 
@@ -174,7 +261,47 @@ export default function TechAdminPage() {
                 <Switch checked={active} onCheckedChange={setActive} />
               </div>
 
-              <Button className="w-full btn-hero" onClick={onCreate} disabled={saving || !name.trim()}>
+              {/* ✅ Working days (Create) */}
+              <div className="rounded-lg border p-4 bg-muted/20 space-y-3">
+                <div className="flex items-center gap-2">
+                  <CalendarDays className="w-4 h-4 text-muted-foreground" />
+                  <p className="text-sm font-medium">Working Days</p>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Full-day shifts based on store opening hours. Choose which days this staff member works.
+                </p>
+
+                <div className="grid grid-cols-2 gap-2">
+                  {WEEKDAYS.map((d) => (
+                    <label key={d.key} className="flex items-center gap-2 cursor-pointer select-none">
+                      <Checkbox
+                        checked={newWorkingDays.includes(d.key)}
+                        onCheckedChange={() => toggleDay(setNewWorkingDays, d.key)}
+                      />
+                      <span className="text-sm">{d.short}</span>
+                    </label>
+                  ))}
+                </div>
+
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={() => setNewWorkingDays(allDays)}>
+                    Select all
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" onClick={() => setNewWorkingDays([])}>
+                    Clear
+                  </Button>
+                </div>
+
+                <div className="text-xs text-muted-foreground">
+                  Selected: <span className="font-medium text-foreground">{formatDays(newWorkingDays)}</span>
+                </div>
+              </div>
+
+              <Button
+                className="w-full btn-hero"
+                onClick={onCreate}
+                disabled={saving || !name.trim() || newWorkingDays.length === 0}
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 {saving ? "Creating..." : "Create"}
               </Button>
@@ -220,17 +347,33 @@ export default function TechAdminPage() {
                         <Badge variant={t.active ? "default" : "secondary"}>{t.active ? "Active" : "Inactive"}</Badge>
                       </div>
 
+                      {/* ✅ Show working days */}
+                      <div className="mt-4 flex items-center justify-between rounded-lg border bg-muted/10 px-3 py-2">
+                        <div className="flex items-center gap-2 text-sm">
+                          <CalendarDays className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">Working days:</span>
+                        </div>
+                        <span className="text-sm font-medium">{formatDays(normalizeDays(t.working_days))}</span>
+                      </div>
+
                       <div className="flex gap-2 mt-6">
                         <Button variant="outline" className="flex-1" onClick={() => toggleActive(t)}>
                           {t.active ? "Deactivate" : "Activate"}
                         </Button>
 
+                        <Button variant="outline" className="flex-1" onClick={() => openEditDays(t)}>
+                          <Settings2 className="w-4 h-4 mr-2" />
+                          Working Days
+                        </Button>
+                      </div>
+
+                      <div className="mt-2">
                         <AlertDialog
                           open={toDelete?.id === t.id}
                           onOpenChange={(open) => setToDelete(open ? t : null)}
                         >
                           <AlertDialogTrigger asChild>
-                            <Button variant="destructive" className="flex-1" onClick={() => setToDelete(t)}>
+                            <Button variant="destructive" className="w-full" onClick={() => setToDelete(t)}>
                               <Trash2 className="w-4 h-4 mr-2" />
                               Delete
                             </Button>
@@ -240,8 +383,8 @@ export default function TechAdminPage() {
                             <AlertDialogHeader>
                               <AlertDialogTitle>Delete this technician?</AlertDialogTitle>
                               <AlertDialogDescription>
-                                This will permanently delete <span className="font-medium">{t.name}</span>.
-                                This action cannot be undone.
+                                This will permanently delete <span className="font-medium">{t.name}</span>. This action
+                                cannot be undone.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
 
@@ -267,6 +410,59 @@ export default function TechAdminPage() {
             )}
           </div>
         </div>
+
+        {/* ✅ Edit Working Days Dialog */}
+        <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
+          <DialogContent className="sm:max-w-[520px]">
+            <DialogHeader>
+              <DialogTitle className="font-serif">Edit Working Days</DialogTitle>
+              <DialogDescription>
+                {editing ? (
+                  <>
+                    Set which days <span className="font-medium">{editing.name}</span> works. Full-day shifts follow store
+                    opening hours.
+                  </>
+                ) : null}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="rounded-lg border p-4 bg-muted/20 space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                {WEEKDAYS.map((d) => (
+                  <label key={d.key} className="flex items-center gap-2 cursor-pointer select-none">
+                    <Checkbox
+                      checked={editingDays.includes(d.key)}
+                      onCheckedChange={() => toggleDay(setEditingDays, d.key)}
+                    />
+                    <span className="text-sm">{d.label}</span>
+                  </label>
+                ))}
+              </div>
+
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => setEditingDays(allDays)}>
+                  Select all
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => setEditingDays([])}>
+                  Clear
+                </Button>
+              </div>
+
+              <div className="text-xs text-muted-foreground">
+                Selected: <span className="font-medium text-foreground">{formatDays(editingDays)}</span>
+              </div>
+            </div>
+
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button variant="outline" onClick={() => setEditing(null)} disabled={editSaving}>
+                Cancel
+              </Button>
+              <Button className="btn-hero" onClick={saveEditDays} disabled={editSaving || editingDays.length === 0}>
+                {editSaving ? "Saving..." : "Save"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
