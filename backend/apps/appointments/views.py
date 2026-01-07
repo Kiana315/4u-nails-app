@@ -52,12 +52,12 @@ class PublicSlotsView(APIView):
             except Technician.DoesNotExist:
                 return Response({"detail": "Technician not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        slots = compute_available_slots(date_obj, service, technician=technician, step_min=30)
+        slots = compute_available_slots(date_obj, service, technician=technician, step_min=15)
 
         return Response({
             "date": date_obj.isoformat(),
             "serviceId": str(service_id),
             "technicianId": str(tech_id) if tech_id else None,
-            "stepMin": 30,
+            "stepMin": 315,
             "slots": [t.strftime("%H:%M") for t in slots],
         })

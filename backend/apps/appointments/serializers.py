@@ -5,6 +5,9 @@ from .models import Appointment
 from apps.services.models import Service
 
 
+from apps.technicians.models import Technician
+from .selectors import is_slot_available  # ✅ 用你现有的 availability 逻辑
+
 class AppointmentCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Appointment
@@ -12,37 +15,49 @@ class AppointmentCreateSerializer(serializers.ModelSerializer):
             "id",
             "customer_name",
             "customer_phone",
-            "service",
-            "technician",
+            "service",       # 前端直接传 service id
+            "technician",    # 可选：允许 null（No preference）
             "date",
             "start_time",
             "notes",
         ]
+        extra_kwargs = {
+            "technician": {"required": False, "allow_null": True},
+            "notes": {"required": False, "allow_blank": True},
+        }
 
     def validate(self, attrs):
         service: Service = attrs["service"]
         date = attrs["date"]
         start_time = attrs["start_time"]
-        technician = attrs.get("technician")
+        technician = attrs.get("technician")  # may be None
 
-        # 计算 end_time（用于冲突判断）
+        # ✅ duration 兼容：duration / duration_min
+        duration_raw = getattr(service, "duration_min", None) or getattr(service, "duration", None) or 30
+        duration_min = int(duration_raw)
+
         start_dt = datetime.combine(date, start_time)
-        end_dt = start_dt + timedelta(minutes=int(service.duration))
+        end_dt = start_dt + timedelta(minutes=duration_min)
         end_time = end_dt.time()
 
-        # 如果选了 technician，就检查该技师当日是否有重叠预约（排除 cancelled/no_show 可选）
+        # 1) 如果指定 technician：必须可用（营业时间+break+冲突）
         if technician is not None:
-            qs = Appointment.objects.filter(
-                technician=technician,
-                date=date,
-            ).exclude(status__in=["cancelled", "no_show"])
-
-            # overlap 条件：existing.start < new.end AND new.start < existing.end
-            conflict = qs.filter(start_time__lt=end_time, end_time__gt=start_time).exists()
-            if conflict:
+            ok = is_slot_available(date, start_time, end_time, service, technician)
+            if not ok:
                 raise serializers.ValidationError("This technician is not available at the selected time.")
 
-        # 把计算得到的 end_time 塞回去（create 时会用）
+        # 2) 如果不指定 technician（No preference）：自动选一个可用的 active 技师
+        if technician is None:
+            chosen = None
+            for tech in Technician.objects.filter(active=True):
+                if is_slot_available(date, start_time, end_time, service, tech):
+                    chosen = tech
+                    break
+            if chosen is None:
+                raise serializers.ValidationError("No technician is available at the selected time.")
+            attrs["technician"] = chosen  # ✅ 自动分配
+            technician = chosen
+
         attrs["_computed_end_time"] = end_time
         return attrs
 

@@ -1,54 +1,43 @@
-import { useState } from 'react';
-import { useEffect, useRef } from "react";
-import { useLocation, Navigate } from 'react-router-dom';
-import { Navbar } from '@/components/common/Navbar';
-import { ServiceSelection } from '@/components/booking/ServiceSelection';
-import { DateTimeSelection } from '@/components/booking/DateTimeSelection';
-import { CustomerInfo } from '@/components/booking/CustomerInfo';
-import { BookingSummary } from '@/components/booking/BookingSummary';
-import { useBookingStore } from '@/stores/bookingStore';
-import { Progress } from '@/components/ui/progress';
+import { useEffect, useRef, useState } from "react";
+import { useLocation, Navigate } from "react-router-dom";
+import { Navbar } from "@/components/common/Navbar";
+import { ServiceSelection } from "@/components/booking/ServiceSelection";
+import { DateTimeSelection } from "@/components/booking/DateTimeSelection";
+import { CustomerInfo } from "@/components/booking/CustomerInfo";
+import BookingConfirm from "@/pages/booking/BookingConfirm"; // ✅ 改：最终确认页（提交 API）
 
+import { useBookingStore } from "@/stores/bookingStore";
+import { Progress } from "@/components/ui/progress";
 
 const steps = [
-  { id: 1, title: 'Select Services', component: ServiceSelection },
-  { id: 2, title: 'Date & Time', component: DateTimeSelection },
-  { id: 3, title: 'Your Info', component: CustomerInfo },
-  { id: 4, title: 'Review', component: BookingSummary },
+  { id: 1, title: "Select Services", component: ServiceSelection },
+  { id: 2, title: "Date & Time", component: DateTimeSelection },
+  { id: 3, title: "Your Info", component: CustomerInfo },
+  { id: 4, title: "Review", component: BookingConfirm }, // ✅ 改：从 BookingSummary 换成 BookingConfirm
 ];
-
-const CurrentComponent = () => (
-  <div style={{ padding: 24 }}>STEP 1 WORKS</div>
-);
 
 export default function BookingFlow() {
   const [currentStep, setCurrentStep] = useState(1);
   const location = useLocation();
   const injectedRef = useRef(false);
-  const { selectedServices } = useBookingStore();
-  const { clearBooking } = useBookingStore();
 
+  const preselectedService = (location.state as any)?.preselectedService;
 
-  // Handle preselected service from services page
-  const preselectedService = location.state?.preselectedService;
-
-  const currentStepData = steps.find(step => step.id === currentStep);
-  const CurrentComponent = currentStepData?.component;
+  const currentStepData = steps.find((step) => step.id === currentStep);
+  const StepComponent = currentStepData?.component;
 
   const progress = (currentStep / steps.length) * 100;
 
   const { setSelectedServices, setSelectedTimeSlot, setSelectedDate, setSelectedTechnician } =
     useBookingStore();
 
+  // ✅ 从 /services 进来，预选 service，并清理后续选择
   useEffect(() => {
     if (injectedRef.current) return;
 
     const pre = (location.state as any)?.preselectedService;
     if (pre?.id) {
-      // ✅ 覆盖式设置：避免叠加
       setSelectedServices([pre]);
-
-      // ✅ 从 services 页面进来时，也顺便清掉后面步骤的残留（否则会“带着上次的日期/时间”）
       setSelectedDate(null);
       setSelectedTimeSlot(null);
       setSelectedTechnician(null);
@@ -58,25 +47,21 @@ export default function BookingFlow() {
   }, [location.state, setSelectedServices, setSelectedDate, setSelectedTimeSlot, setSelectedTechnician]);
 
   const nextStep = () => {
-    if (currentStep < steps.length) {
-      setCurrentStep(currentStep + 1);
-    }
+    if (currentStep < steps.length) setCurrentStep((s) => s + 1);
   };
 
   const prevStep = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
+    if (currentStep > 1) setCurrentStep((s) => s - 1);
   };
 
-  if (!CurrentComponent) {
+  if (!StepComponent || !currentStepData) {
     return <Navigate to="/book" replace />;
   }
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      
+
       <div className="pt-20">
         <div className="container mx-auto px-4 py-8">
           {/* Progress Header */}
@@ -89,17 +74,12 @@ export default function BookingFlow() {
                 Step {currentStep} of {steps.length}: {currentStepData.title}
               </p>
             </div>
-            
+
             <Progress value={progress} className="h-2 mb-4" />
-            
+
             <div className="flex justify-between text-xs text-muted-foreground">
               {steps.map((step) => (
-                <div 
-                  key={step.id}
-                  className={`${
-                    step.id <= currentStep ? 'text-primary' : ''
-                  }`}
-                >
+                <div key={step.id} className={step.id <= currentStep ? "text-primary" : ""}>
                   {step.title}
                 </div>
               ))}
@@ -108,7 +88,7 @@ export default function BookingFlow() {
 
           {/* Step Content */}
           <div className="max-w-4xl mx-auto">
-            <CurrentComponent
+            <StepComponent
               onNext={nextStep}
               onPrev={prevStep}
               currentStep={currentStep}

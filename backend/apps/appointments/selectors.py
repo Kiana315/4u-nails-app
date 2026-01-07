@@ -64,8 +64,7 @@ def get_daily_working_intervals(date_obj) -> List[tuple]:
         return []
     day_key = _get_day_key(date_obj)
     opening = _parse_intervals((cfg.opening_hours or {}).get(day_key, []))
-    print("DEBUG day_key:", day_key, "opening_raw:", (cfg.opening_hours or {}).get(day_key, []))
-    print("DEBUG holidays:", cfg.holidays)
+
 
     breaks = _parse_intervals((cfg.breaks or {}).get(day_key, []))
     if breaks:
@@ -74,41 +73,64 @@ def get_daily_working_intervals(date_obj) -> List[tuple]:
 
 
 def get_technician_free_intervals(technician: Technician, date_obj) -> List[tuple]:
-    # 全店营业时间（已扣 holiday + breaks）
-    store_open = get_daily_working_intervals(date_obj)
-    if not store_open:
-        return []
 
-    # 技师上班时间（单独配置）
-    tech_work = get_technician_working_intervals(technician, date_obj)
-    if not tech_work:
-        return []
+    base = get_daily_working_intervals(date_obj)
 
-    # 交集 = 当天这个技师理论可上班时间
-    base = _intersect_intervals(store_open, tech_work)
-    if not base:
-        return []
-
-    # 扣掉已有预约
     apps = Appointment.objects.filter(technician=technician, date=date_obj).values("start_time", "end_time")
     busy = [(a["start_time"], a["end_time"]) for a in apps]
+
     if busy:
         base = _subtract_intervals(base, busy)
 
     return base
 
+    # # 全店营业时间（已扣 holiday + breaks）
+    # store_open = get_daily_working_intervals(date_obj)
+    # if not store_open:
+    #     return []
+
+    # # 技师上班时间（单独配置）
+    # tech_work = get_technician_working_intervals(technician, date_obj)
+    # if not tech_work:
+    #     return []
+
+    # # 交集 = 当天这个技师理论可上班时间
+    # base = _intersect_intervals(store_open, tech_work)
+    # if not base:
+    #     return []
+
+    # # 扣掉已有预约
+    # apps = Appointment.objects.filter(technician=technician, date=date_obj).values("start_time", "end_time")
+    # busy = [(a["start_time"], a["end_time"]) for a in apps]
+    # if busy:
+    #     base = _subtract_intervals(base, busy)
+
+    # return base
 
 
-def compute_available_slots(date_obj, service: Service, technician: Optional[Technician] = None, step_min: int = 30):
+
+def compute_available_slots(date_obj, service: Service, technician: Optional[Technician] = None, step_min: int = 15):
     """
     返回可预约的开始时间列表（time objects）
     - step_min=30: 半小时一个 slot
     - 默认所有 active 技师都能做所有 services
     """
-    print("DEBUG active tech count:", Technician.objects.filter(active=True).count())
+    duration_raw = (
+        getattr(service, "duration_min", None)
+        or getattr(service, "duration", None)
+        or getattr(service, "duration_minutes", None)
+        or getattr(service, "minutes", None)
+        or 30
+    )
 
-    duration_min = getattr(service, "duration_min", None) or getattr(service, "duration", None) or 30
-    duration_min = int(duration_min)
+
+    try:
+        duration_min = int(duration_raw)
+    except (TypeError, ValueError):
+        duration_min = 30
+
+    if duration_min <= 0:
+        duration_min = 30
 
     if technician:
         if not getattr(technician, "active", True):

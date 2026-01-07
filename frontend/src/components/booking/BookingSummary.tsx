@@ -164,7 +164,7 @@ export function BookingSummary({ onPrev }: BookingSummaryProps) {
                 <div>
                   <div className="font-medium text-foreground">Time</div>
                   <div className="text-sm text-muted-foreground">
-                    {selectedTimeSlot.startTime} - {selectedTimeSlot.endTime}
+                    {selectedTimeSlot.startTime}
                   </div>
                 </div>
               </div>

@@ -34,14 +34,12 @@ const App = () => {
             <Route path="/book" element={<BookingFlow />} />
             <Route path="/book/confirm" element={<BookingConfirm />} />
             <Route path="/book/success" element={<BookingSuccess />} />
-            {/* <Route path="/admin" element={<AdminDashboard />} /> */}
             <Route path="*" element={<NotFound />} />
 
             <Route path="/services" element={<ServicesPublicPage />} />
 
 
-            <Route path="/admin"
-              element={
+            <Route path="/admin" element={
                 <RequireAdmin>
                   <AdminDashboard />
                 </RequireAdmin>
@@ -58,8 +56,8 @@ const App = () => {
                 element={
                 <RequireAdmin>
                   <TechAdminPage />
-                </RequireAdmin>} />
-            {/* <Route path="/admin/services" element={<ServicesAdminPage />} /> */}
+                </RequireAdmin>
+              } />
           </Routes>
         </TooltipProvider>
       </BrowserRouter>

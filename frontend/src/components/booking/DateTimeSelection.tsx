@@ -102,19 +102,25 @@ export function DateTimeSelection({ onNext, onPrev }: DateTimeSelectionProps) {
   }, [selectedDate]);
 
   // 2) Slots：必须先选 date；tech 可选
-  const slotParams = useMemo(() => {
-    const serviceId = selectedServices[0]?.id;
-    return {
-      date: selectedDate || "",
-      serviceId: serviceId ? String(serviceId) : undefined,
-      technicianId: selectedTechnician?.id ? String(selectedTechnician.id) : undefined,
-    };
-  }, [selectedDate, selectedServices, selectedTechnician]);
+  const serviceId = selectedServices[0]?.id
+    ? String(selectedServices[0].id)
+    : "";
+
+  const techId = selectedTechnician?.id
+    ? String(selectedTechnician.id)
+    : "";
+
+  const dateStr = selectedDate ?? "";
 
   const { data: slotsRes, isLoading: slotsLoading, isError: slotsError } = useQuery({
-    queryKey: ["slots", slotParams],
-    queryFn: () => slots.getAvailable(slotParams as any),
-    enabled: !!selectedDate && !!selectedServices.length,
+    queryKey: ["slots", dateStr, serviceId, techId],
+    queryFn: () =>
+      slots.getAvailable({
+        date: dateStr,
+        serviceId,
+        technicianId: techId || undefined,
+      }),
+    enabled: !!dateStr && !!serviceId,
     retry: false,
   });
 
@@ -126,33 +132,17 @@ export function DateTimeSelection({ onNext, onPrev }: DateTimeSelectionProps) {
   const availableSlots: TimeSlot[] = useMemo(() => {
     const raw = slotsRes?.data ?? slotsRes;
 
-    // ✅ 情况1：后端返回 { slots: ["10:00", "10:30"] }
-    if (Array.isArray(raw?.slots)) {
-      const durationMin = selectedServices.reduce((sum, s: any) => sum + (Number(s.duration) || 0), 0);
+    // 后端返回 { slots: ["10:00", ...] }
+    const arr = Array.isArray(raw?.slots) ? raw.slots : [];
 
-      return raw.slots.map((start: string) => {
-        // 算 endTime（可选）
-        let endTime: string | undefined = undefined;
-        if (durationMin > 0) {
-          const [hh, mm] = start.split(":").map((x) => parseInt(x, 10));
-          const base = new Date(2000, 0, 1, hh || 0, mm || 0, 0);
-          const end = new Date(base.getTime() + durationMin * 60 * 1000);
-          endTime = format(end, "HH:mm");
-        }
+    return arr.map((start: string) => ({
+      id: start,            // 用 startTime 做唯一 id
+      startTime: start,
+      endTime: undefined,   // 如需 endTime 我也可以帮你算
+      isAvailable: true,
+    })) as any;
+  }, [slotsRes]);
 
-        return {
-          id: start,               // 用 startTime 当 id
-          startTime: start,
-          endTime,
-          isAvailable: true,
-        } as any;
-      });
-    }
-
-    // ✅ 情况2：后端直接返回列表 [{id,startTime,...}]
-    const list = unwrapList(raw);
-    return Array.isArray(list) ? (list as any) : [];
-  }, [slotsRes, selectedServices]);
 
 
   const handleDateSelect = (date: Date | undefined) => {
@@ -177,7 +167,7 @@ export function DateTimeSelection({ onNext, onPrev }: DateTimeSelectionProps) {
     return date < today;
   };
 
-  const filteredSlots = availableSlots.filter((s: any) => s.isAvailable !== false);
+  const filteredSlots = availableSlots;
 
   return (
     <div className="space-y-8">
