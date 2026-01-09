@@ -1,32 +1,27 @@
-import { useEffect, useRef, useState } from "react";
-import { useLocation, Navigate } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate, Navigate } from "react-router-dom";
 import { Navbar } from "@/components/common/Navbar";
 import { ServiceSelection } from "@/components/booking/ServiceSelection";
 import { DateTimeSelection } from "@/components/booking/DateTimeSelection";
 import { CustomerInfo } from "@/components/booking/CustomerInfo";
-import BookingConfirm from "@/pages/booking/BookingConfirm"; // ✅ 改：最终确认页（提交 API）
+import { BookingSummary } from "@/components/booking/BookingSummary"; // ✅ 用回 Summary（只做展示）
 
 import { useBookingStore } from "@/stores/bookingStore";
 import { Progress } from "@/components/ui/progress";
+import type { Service } from "@/types";
 
 const steps = [
   { id: 1, title: "Select Services", component: ServiceSelection },
   { id: 2, title: "Date & Time", component: DateTimeSelection },
   { id: 3, title: "Your Info", component: CustomerInfo },
-  { id: 4, title: "Review", component: BookingConfirm }, // ✅ 改：从 BookingSummary 换成 BookingConfirm
+  { id: 4, title: "Review", component: BookingSummary }, // ✅ Step 4 只展示，提交去 /book/confirm
 ];
 
 export default function BookingFlow() {
   const [currentStep, setCurrentStep] = useState(1);
   const location = useLocation();
+  const navigate = useNavigate();
   const injectedRef = useRef(false);
-
-  const preselectedService = (location.state as any)?.preselectedService;
-
-  const currentStepData = steps.find((step) => step.id === currentStep);
-  const StepComponent = currentStepData?.component;
-
-  const progress = (currentStep / steps.length) * 100;
 
   const { setSelectedServices, setSelectedTimeSlot, setSelectedDate, setSelectedTechnician } =
     useBookingStore();
@@ -35,7 +30,7 @@ export default function BookingFlow() {
   useEffect(() => {
     if (injectedRef.current) return;
 
-    const pre = (location.state as any)?.preselectedService;
+    const pre = (location.state as any)?.preselectedService as Service | undefined;
     if (pre?.id) {
       setSelectedServices([pre]);
       setSelectedDate(null);
@@ -46,17 +41,38 @@ export default function BookingFlow() {
     injectedRef.current = true;
   }, [location.state, setSelectedServices, setSelectedDate, setSelectedTimeSlot, setSelectedTechnician]);
 
+  // ✅ 支持从其他页面回到 /book 并指定 step（例如 confirm 页 Edit → step 3）
+  useEffect(() => {
+    const step = (location.state as any)?.step;
+    if (typeof step === "number" && step >= 1 && step <= steps.length) {
+      setCurrentStep(step);
+    }
+  }, [location.state]);
+
+  const currentStepData = useMemo(() => steps.find((s) => s.id === currentStep), [currentStep]);
+  const StepComponent = currentStepData?.component;
+
+  const progress = (currentStep / steps.length) * 100;
+
   const nextStep = () => {
-    if (currentStep < steps.length) setCurrentStep((s) => s + 1);
+    // ✅ 最后一步：跳到独立 confirm 页面提交
+    if (currentStep === steps.length) {
+      navigate("/book/confirm");
+      return;
+    }
+    setCurrentStep((s) => Math.min(s + 1, steps.length));
   };
 
   const prevStep = () => {
-    if (currentStep > 1) setCurrentStep((s) => s - 1);
+    setCurrentStep((s) => Math.max(s - 1, 1));
   };
 
   if (!StepComponent || !currentStepData) {
     return <Navigate to="/book" replace />;
   }
+
+  // ✅ 只有 ServiceSelection 需要 preselectedService props
+  const preselectedService = (location.state as any)?.preselectedService as Service | undefined;
 
   return (
     <div className="min-h-screen bg-background">
@@ -88,13 +104,30 @@ export default function BookingFlow() {
 
           {/* Step Content */}
           <div className="max-w-4xl mx-auto">
-            <StepComponent
-              onNext={nextStep}
-              onPrev={prevStep}
-              currentStep={currentStep}
-              totalSteps={steps.length}
-              preselectedService={preselectedService}
-            />
+            {currentStep === 1 ? (
+              <ServiceSelection onNext={nextStep} preselectedService={preselectedService} />
+            ) : currentStep === 2 ? (
+              <DateTimeSelection
+                onNext={nextStep}
+                onPrev={prevStep}
+                currentStep={currentStep}
+                totalSteps={steps.length}
+              />
+            ) : currentStep === 3 ? (
+              <CustomerInfo
+                onNext={nextStep}
+                onPrev={prevStep}
+                currentStep={currentStep}
+                totalSteps={steps.length}
+              />
+            ) : (
+              <BookingSummary
+                onNext={nextStep}  // ✅ 这里 next 会跳 /book/confirm
+                onPrev={prevStep}
+                currentStep={currentStep}
+                totalSteps={steps.length}
+              />
+            )}
           </div>
         </div>
       </div>

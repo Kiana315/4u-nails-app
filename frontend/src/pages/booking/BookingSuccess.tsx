@@ -89,7 +89,7 @@ export default function BookingSuccess() {
             </div>
             
             <p className="text-sm text-muted-foreground">
-              Need to reschedule or cancel? Call us at (555) 123-4567 at least 24 hours in advance.
+              Need to reschedule or cancel? Call us at (555) 123-4567.
             </p>
           </div>
         </div>

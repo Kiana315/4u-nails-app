@@ -165,8 +165,8 @@ SPECTACULAR_SETTINGS = {
 CORS_ALLOWED_ORIGINS = [
     *[o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if o.strip()],
 ] or [
-      "http://localhost:8080",         # ⬅️ 新增
-      "http://127.0.0.1:8080",  
+      "http://localhost:5173",         # ⬅️ 新增
+      "http://127.0.0.1:5173",  
       ]
 
 CORS_ALLOW_CREDENTIALS = True

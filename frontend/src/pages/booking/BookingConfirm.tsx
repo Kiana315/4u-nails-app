@@ -29,10 +29,8 @@ function addMinutesToHHMM(hhmm: string, minutesToAdd: number) {
   return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
 }
 
-export default function BookingConfirm({
-  onPrev,
-}: BookingConfirmProps) {
-
+// ✅ 不要 BookingConfirmProps，不要 onPrev
+export default function BookingConfirm() {
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
 
@@ -70,11 +68,10 @@ export default function BookingConfirm({
           description: "Please select service, date and time.",
           variant: "destructive" as any,
         });
-        navigate("/book");
+        navigate("/book", { replace: true });
         return;
       }
 
-      // 前端 slot 是 "HH:MM"，DRF TimeField 最稳给 "HH:MM:00"
       const start = selectedTimeSlot.startTime;
       const start_time = start.length === 5 ? `${start}:00` : start;
 
@@ -82,8 +79,8 @@ export default function BookingConfirm({
         customer_name: (customerInfo.name || "").trim(),
         customer_phone: normalizePhone(customerInfo.phone || ""),
         service: Number(selectedServices[0].id),
-        technician: selectedTechnician?.id ?? null, // No preference = null
-        date: selectedDate, // "YYYY-MM-DD"
+        technician: selectedTechnician?.id ?? null,
+        date: selectedDate,
         start_time,
         notes: (customerInfo.notes || "").trim(),
       };
@@ -100,20 +97,14 @@ export default function BookingConfirm({
       setSubmitting(true);
       await publicApi.createAppointment(payload);
 
-      // ✅ 清空 booking 状态
-      clearBooking();
-
-      // ✅ 跳转成功页
-      navigate("/book/success", { replace: true });
-
-
       toast({
         title: "Booking confirmed",
         description: "Your appointment has been created successfully.",
       });
 
-      clearBooking();
-      navigate("/book/success");
+      // ✅ 关键：先跳转，再清空（否则会被“store空就回/book”逻辑拦截）
+      navigate("/book/success", { replace: true });
+      setTimeout(() => clearBooking(), 0);
     } catch (e: any) {
       const msg =
         e?.response?.data?.detail ||
@@ -135,11 +126,12 @@ export default function BookingConfirm({
   };
 
   const handleEdit = () => {
-    onPrev(); // ✅ 回到上一步（Your Info）
+    // ✅ 回到 /book 并让 BookingFlow 打开到 Step 3（Your Info）
+    navigate("/book", { state: { step: 3 } });
   };
 
-
   if (selectedServices.length === 0 || !selectedDate || !selectedTimeSlot) return null;
+
 
   return (
     <div className="min-h-screen bg-background">

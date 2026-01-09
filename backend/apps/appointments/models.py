@@ -17,12 +17,13 @@ class Appointment(models.Model):
     customer_name = models.CharField(max_length=100)
     customer_phone = models.CharField(max_length=30)
 
-    service = models.ForeignKey(Service, on_delete=models.CASCADE)
+    services = models.ManyToManyField("services.Service", related_name="appointments", blank=True)
     technician = models.ForeignKey(
         Technician, null=True, blank=True,
         on_delete=models.SET_NULL,
         related_name="appointments",
     )
+    no_preference = models.BooleanField(default=False)
 
     date = models.DateField()
     start_time = models.TimeField()
@@ -42,11 +43,12 @@ class Appointment(models.Model):
         ]
 
     def save(self, *args, **kwargs):
-        if self.service_id and self.date and self.start_time:
-            start_dt = datetime.combine(self.date, self.start_time)
-            end_dt = start_dt + timedelta(minutes=int(self.service.duration))
-            self.end_time = end_dt.time()
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.customer_name} - {self.service} on {self.date} at {self.start_time}"
+        services_text = ", ".join(s.name for s in self.services.all())
+        if not services_text:
+            services_text = "No services"
+        tech_name = self.technician.name if self.technician else "No technician"
+        return f"{self.customer_name} - {services_text} ({tech_name}) on {self.date} at {self.start_time}"
+
