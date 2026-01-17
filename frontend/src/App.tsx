@@ -9,14 +9,14 @@ import RequireAdmin from "./components/auth/RequireAdmin";
 import Index from "./pages/public/Index";
 import Login from "./pages/auth/Login";
 import BookingFlow from "./pages/booking/BookingFlow";
-import BookingConfirm from "./pages/booking/BookingConfirm";
+// import BookingConfirm from "./pages/booking/BookingConfirm";
 import BookingSuccess from "./pages/booking/BookingSuccess";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import NotFound from "./pages/NotFound";
 import ServicesPublicPage from "./pages/public/ServicesPublic";
 import ServicesAdminPage from "./pages/admin/ServicesAdmin";
 import TechAdminPage from "./pages/admin/TechAdmin";
-
+import AppointmentAdminPage from "@/pages/admin/AppointmentsAdmin"
 
 
 const queryClient = new QueryClient();
@@ -58,6 +58,8 @@ const App = () => {
                   <TechAdminPage />
                 </RequireAdmin>
               } />
+              <Route path="/admin/appointments/:id" element={<AppointmentAdminPage />} />
+
           </Routes>
         </TooltipProvider>
       </BrowserRouter>

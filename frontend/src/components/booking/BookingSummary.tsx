@@ -272,11 +272,25 @@ export function BookingSummary({ onPrev }: BookingSummaryProps) {
 
         {/* Actions */}
         <div className="flex space-x-4">
-          <Button variant="ghost" onClick={handleCancel} className="flex-1">
-            Cancel Booking
-          </Button>
+          
           <Button variant="outline" onClick={onPrev} className="flex-1">
             Back to Edit Info
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={handleCancel}
+            className="
+              flex-1
+              p-0
+              h-auto
+              text-muted-foreground
+              hover:bg-transparent
+              hover:underline
+              hover:text-foreground
+              focus-visible:ring-0
+            "
+          >
+            Cancel Booking
           </Button>
           <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
             <AlertDialogTrigger asChild>
@@ -293,12 +307,9 @@ export function BookingSummary({ onPrev }: BookingSummaryProps) {
               <AlertDialogHeader>
                 <AlertDialogTitle>Confirm your booking?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will submit your appointment request.
-                  <div className="mt-3 text-sm text-muted-foreground">
-                    <div><span className="font-medium">Date:</span> {selectedDate ? format(new Date(selectedDate), "EEEE, MMMM d, yyyy") : "-"}</div>
-                    <div><span className="font-medium">Time:</span> {timeText || "-"}</div>
-                    <div><span className="font-medium">Technician:</span> {selectedTechnician ? selectedTechnician.name : "No preference"}</div>
-                  </div>
+                  Are you sure you want to submit this appointment?
+                  <br />
+                  Once submitted, our staff will review and confirm your booking.
                 </AlertDialogDescription>
               </AlertDialogHeader>
 

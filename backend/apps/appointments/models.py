@@ -8,7 +8,7 @@ from apps.technicians.models import Technician
 class Appointment(models.Model):
     STATUS_CHOICES = (
         ("created", "Created"),
-        ("confirmed", "Confirmed"),
+        ("pending", "Pending"),
         ("completed", "Completed"),
         ("cancelled", "Cancelled"),
         ("no_show", "No-show"),
