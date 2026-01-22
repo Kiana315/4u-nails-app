@@ -123,7 +123,7 @@ export default function AdminDashboard() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button className="btn-hero hover:translate-y-0">
+            <Button className="btn-hero hover:translate-y-0" onClick={() => navigate("/admin/appointments/new")}>
               <Plus className="w-4 h-4 mr-2" />
               Quick Booking
             </Button>
@@ -252,7 +252,7 @@ export default function AdminDashboard() {
                 <CardTitle>Quick Actions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button className="w-full justify-start" variant="outline">
+                <Button className="w-full justify-start" variant="outline" onClick={() => navigate("/admin/appointments/new")}>
                   <Plus className="w-4 h-4 mr-2" />
                   New Appointment
                 </Button>
@@ -273,7 +273,7 @@ export default function AdminDashboard() {
 
             <Card className="card-elegant-no-hover mt-6">
               <CardHeader>
-                <CardTitle>Coming Soon</CardTitle>
+                <CardTitle>Coming Soon(这里没功能)</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 text-sm text-muted-foreground">
                 <p>• Customer reviews & ratings</p>

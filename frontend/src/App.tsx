@@ -17,6 +17,7 @@ import ServicesPublicPage from "./pages/public/ServicesPublic";
 import ServicesAdminPage from "./pages/admin/ServicesAdmin";
 import TechAdminPage from "./pages/admin/TechAdmin";
 import AppointmentAdminPage from "@/pages/admin/AppointmentsAdmin"
+import AdminNewAppointment from "./pages/admin/AdminNewAppointment";
 
 
 const queryClient = new QueryClient();
@@ -59,6 +60,7 @@ const App = () => {
                 </RequireAdmin>
               } />
               <Route path="/admin/appointments/:id" element={<AppointmentAdminPage />} />
+              <Route path="/admin/appointments/new" element={<AdminNewAppointment />} />
 
           </Routes>
         </TooltipProvider>

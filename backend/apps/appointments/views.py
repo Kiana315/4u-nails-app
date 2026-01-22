@@ -24,10 +24,18 @@ class AdminAppointmentViewSet(viewsets.ModelViewSet):
     """
     管理员：查看/编辑/确认/取消 等
     """
-    queryset = Appointment.objects.all()
-    serializer_class = AppointmentAdminSerializer
+    queryset = Appointment.objects.all().select_related("technician").prefetch_related("services")
+
     permission_classes = [IsAdmin]
 
+    def get_serializer_class(self):
+        if self.action == "create":
+            return AppointmentCreateSerializer
+        return AppointmentAdminSerializer
+    def perform_create(self, serializer):
+        # ✅ Admin 快速创建默认 pending
+        serializer.save(status="pending")
+    
 class PublicSlotsView(APIView):
     permission_classes = [permissions.AllowAny]
 
