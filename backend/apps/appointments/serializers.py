@@ -87,17 +87,40 @@ class AppointmentCreateSerializer(serializers.ModelSerializer):
 
 
 class AppointmentAdminSerializer(serializers.ModelSerializer):
-    services = serializers.StringRelatedField(many=True)
+    # ✅ 返回服务ID列表（你要的“存id/传id”）
+    services = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=Service.objects.all(),
+        required=False
+    )
+
+
+    # ✅ 额外返回服务名字给前端显示（推荐）
+    services_display = serializers.SerializerMethodField()
+
     technician_display = serializers.SerializerMethodField()
 
     class Meta:
         model = Appointment
-        fields = "__all__"
-        # 如果你想明确带上两个字段（避免 __all__ 被你以后改掉）
-        # fields = [ ...原字段..., "technician_display", "service_name" ]
+        fields = "__all__"  # 会包含 services / technician_display / services_display
+
+    def get_services_display(self, obj: Appointment):
+        # 返回 [{id, name}, ...]
+        return [{"id": s.id, "name": s.name} for s in obj.services.all()]
 
     def get_technician_display(self, obj: Appointment):
-        # ✅ 客户没选技师 -> 后台显示 No preference（即使 technician 实际已被自动分配）
         if getattr(obj, "no_preference", False):
             return "No preference"
         return obj.technician.name if obj.technician else "—"
+
+    def update(self, instance, validated_data):
+        services = validated_data.pop("services", None)
+
+        for k, v in validated_data.items():
+            setattr(instance, k, v)
+        instance.save()
+
+        if services is not None:
+            instance.services.set(services)
+
+        return instance

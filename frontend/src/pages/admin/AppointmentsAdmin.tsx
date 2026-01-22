@@ -1,7 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { admin } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,14 +8,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
+import { admin, services as servicesApi } from "@/lib/api";
+import { Checkbox } from "@/components/ui/checkbox";
 
-const STATUS_OPTIONS = ["created", "pending", "completed", "cancelled", "no-showed"] as const;
 
-function ensureArray(v: any): string[] {
-  if (Array.isArray(v)) return v.map(String);
-  return [];
-}
+const STATUS_OPTIONS = ["created", "pending", "completed", "cancelled"] as const;
 
+
+
+// 组件列表
 export default function AdminAppointmentDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -27,12 +27,16 @@ export default function AdminAppointmentDetail() {
     queryFn: async () => admin.getAppointmentById(id!),
     enabled: !!id,
   });
+  const { data: allServices = [] } = useQuery({
+    queryKey: ["adminServices"],
+    queryFn: servicesApi.getAdmin,
+  });
 
   // 用 appt 初始化一个可编辑的 form（首次加载后填充）
   const [form, setForm] = useState<any>(null);
 
   // 当 appt 第一次到达时，创建 form（避免每次 render 重置用户输入）
-  useMemo(() => {
+  useEffect(() => {
     if (appt && !form) {
       setForm({
         customer_name: appt.customer_name ?? "",
@@ -42,13 +46,22 @@ export default function AdminAppointmentDetail() {
         end_time: appt.end_time ?? "",
         status: appt.status ?? "created",
         notes: appt.notes ?? "",
-        services: ensureArray(appt.services), // 你目前 services 是 ["1111","2222"]
+        services: Array.isArray(appt.services) ? appt.services.map(String) : [],
         technician: appt.technician ?? null,
         technician_display: appt.technician_display ?? "",
         no_preference: !!appt.no_preference,
       });
     }
   }, [appt, form]);
+  
+  const toggleService = (serviceId: string) => {
+    setForm((prev: any) => {
+      const cur = new Set<string>(prev.services || []);
+      if (cur.has(serviceId)) cur.delete(serviceId);
+      else cur.add(serviceId);
+      return { ...prev, services: Array.from(cur) };
+    });
+  };
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -61,7 +74,8 @@ export default function AdminAppointmentDetail() {
         end_time: form.end_time,
         status: form.status,
         notes: form.notes,
-        services: form.services,
+        services: (form.services || []).map((x: string) => Number(x)),
+
         // 如果你允许改技师/偏好，再放开：
         // technician: form.technician,
         // no_preference: form.no_preference,
@@ -69,7 +83,7 @@ export default function AdminAppointmentDetail() {
       return admin.updateAppointment(id!, patch);
     },
     onSuccess: async () => {
-      toast({ title: "Saved", description: "Appointment updated successfully.", duration: 2500 });
+      toast({ title: "Saved", description: "Appointment updated successfully.", duration: 3000 });
       await qc.invalidateQueries({ queryKey: ["adminAppointment", id] });
       await qc.invalidateQueries({ queryKey: ["adminAppointments"] }); // 列表也刷新
     },
@@ -193,25 +207,79 @@ export default function AdminAppointmentDetail() {
               </Select>
             </div>
 
-            {/* Services (暂时字符串数组编辑) */}
-            <div className="space-y-2 md:col-span-2">
-              <Label>Services</Label>
-              <Input
-                value={ensureArray(form.services).join(", ")}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    services: e.target.value
-                      .split(",")
-                      .map((x) => x.trim())
-                      .filter(Boolean),
-                  })
-                }
-                placeholder="e.g. Gel Manicure, Spa Pedicure"
-              />
-              <p className="text-xs text-muted-foreground">
-                Separate by comma.
-              </p>
+        
+            {/* Services (checkbox editor) */}
+            <div className="md:col-span-2">
+              <Label className="mb-2 block">Services</Label>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                {/* 左侧：所有服务 */}
+                <div className="rounded-lg border border-border p-3">
+                  <p className="text-sm font-medium text-foreground mb-3">All Services</p>
+
+                  <div className="space-y-2 max-h-[320px] overflow-auto pr-2">
+                    {(allServices as any[]).map((s) => {
+                      const sid = String(s.id);
+                      const checked = (form.services || []).includes(sid);
+
+                      return (
+                        <div
+                          key={sid}
+                          className="flex items-center gap-2 rounded-md px-2 py-1 hover:bg-muted/40"
+                        >
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={() => toggleService(sid)}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => toggleService(sid)}
+                            className="text-sm text-foreground text-left flex-1"
+                          >
+                            {s.name}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 右侧：已选服务 */}
+                <div className="rounded-lg border border-border p-3 bg-muted/20">
+                  <p className="text-sm font-medium text-foreground mb-3">
+                    Selected ({(form.services || []).length})
+                  </p>
+
+                  {(form.services || []).length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No services selected.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {(form.services || []).map((sid: string) => {
+                        const service = (allServices as any[]).find((x) => String(x.id) === sid);
+
+                        return (
+                          <div
+                            key={sid}
+                            className="flex items-center justify-between rounded-md bg-background px-3 py-2"
+                          >
+                            <span className="text-sm text-foreground">
+                              {service?.name ?? `#${sid}`}
+                            </span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              className="h-8 px-2 underline-offset-4 hover:underline"
+                              onClick={() => toggleService(sid)}
+                            >
+                              Remove
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Notes */}

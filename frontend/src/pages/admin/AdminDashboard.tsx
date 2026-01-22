@@ -5,55 +5,17 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from "@/hooks/use-toast";
 import { Calendar, Users, Clock, Plus, HandHeart, LogOut } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
-import { auth, admin, services as servicesApi } from "@/lib/api";
+import { auth, admin } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { useMemo } from "react";
 
-// Mock data for dashboard
-// const mockStats = {
-//   todayBookings: 12,
-//   pendingBookings: 5,
-//   revenue: 1250,
-//   completedServices: 28,
-// };
-
-// const mockTodayAppointments = [
-//   {
-//     id: '1',
-//     time: '9:00 AM',
-//     customer: 'Sarah Johnson',
-//     service: 'Gel Manicure',
-//     status: 'confirmed',
-//     technician: 'Maria',
-//   },
-//   {
-//     id: '2',
-//     time: '10:30 AM',
-//     customer: 'Emily Davis',
-//     service: 'Spa Pedicure',
-//     status: 'in-progress',
-//     technician: 'Sofia',
-//   },
-//   {
-//     id: '3',
-//     time: '12:00 PM',
-//     customer: 'Jessica Chen',
-//     service: 'Nail Art',
-//     status: 'pending',
-//     technician: 'Ana',
-//   },
-//   {
-//     id: '4',
-//     time: '2:00 PM',
-//     customer: 'Amanda Wilson',
-//     service: 'Classic Manicure',
-//     status: 'confirmed',
-//     technician: 'Maria',
-//   },
-// ];
-
-
+const STATUS_STYLES: Record<string, { label: string; className: string }> = {
+  created: { label: "Created", className: "bg-muted text-muted-foreground" },
+  pending: { label: "Pending", className: "bg-yellow-100 text-yellow-800" },
+  completed: { label: "Completed", className: "bg-green-100 text-green-800" },
+  cancelled: { label: "Cancelled", className: "bg-red-100 text-red-800" },
+};
 
 const formatTime = (value: any) => {
   if (!value) return "-";
@@ -62,7 +24,7 @@ const formatTime = (value: any) => {
   return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 };
 
-// 你的后端是 date + start_time（"2026-01-29" + "12:30:00"）
+// 后端是 date + start_time（"2026-01-29" + "12:30:00"）
 const getAppointmentTimeText = (a: any) => {
   if (a?.date && a?.start_time) {
     const d = new Date(`${a.date}T${a.start_time}`);
@@ -71,23 +33,38 @@ const getAppointmentTimeText = (a: any) => {
     }
     return a.start_time;
   }
-
-  // 兼容旧结构
   const v = a?.start_time || a?.start || a?.datetime || a?.time || null;
   return formatTime(v);
 };
 
 const getCustomerName = (a: any) => a?.customer_name || "-";
-
 const getCustomerPhone = (a: any) => a?.customer_phone || "-";
+const getTechName = (a: any) => a?.technician_display || "No preference";
 
-const getTechName = (a: any) =>
-  a?.technician_display || "No preference";
-
+const timeToMinutes = (t: any) => {
+  if (!t) return 0;
+  const s = String(t);
+  const [hh = "0", mm = "0"] = s.split(":"); // 支持 "13:30:00" 或 "13:30"
+  const h = Number(hh);
+  const m = Number(mm);
+  if (Number.isNaN(h) || Number.isNaN(m)) return 0;
+  return h * 60 + m;
+};
 
 const getServiceName = (a: any) => {
-  const services = Array.isArray(a?.services) ? a.services : [];
-  return services.length ? services.join(", ") : "—";
+  const list = Array.isArray(a?.services_display) ? a.services_display : [];
+  if (list.length === 0) return "—";
+  return list.map((s: any) => s.name).join(", ");
+};
+
+const getStatusMeta = (status: any) => {
+  const key = String(status || "").toLowerCase();
+  return (
+    STATUS_STYLES[key] ?? {
+      label: key || "unknown",
+      className: "bg-muted text-muted-foreground",
+    }
+  );
 };
 
 export default function AdminDashboard() {
@@ -105,30 +82,23 @@ export default function AdminDashboard() {
 
   const today = format(new Date(), "yyyy-MM-dd");
 
-  // 1) 今日预约
+  // 今日预约（后端已按 date 过滤最好；前端再保险过滤一次）
   const { data: appointments = [], isLoading, isError } = useQuery({
     queryKey: ["adminAppointments", today],
     queryFn: async () => admin.listAppointments({ date: today }),
-  });
-
-  // 2) 服务列表（用于把 services id 转成名字）
-  const { data: allServices = [] } = useQuery({
-    queryKey: ["adminServices"],
-    queryFn: servicesApi.getAdmin,
   });
 
   const todayAppointments = useMemo(() => {
     return (appointments as any[]).filter((a) => a?.date === today);
   }, [appointments, today]);
 
-  // ✅ 必须在组件里生成（不能写在组件外）
-  const serviceNameById = useMemo<Map<string, string>>(() => {
-    return new Map<string, string>(
-      (allServices as any[]).map((s) => [String(s.id), String(s.name)])
-    );
-  }, [allServices]);
+  // ✅ 按 start_time 升序（早 -> 晚）
+  const sortedTodayAppointments = useMemo(() => {
+    return [...todayAppointments].sort((a: any, b: any) => {
+      return timeToMinutes(a?.start_time) - timeToMinutes(b?.start_time);
+    });
+  }, [todayAppointments]);
 
-  // stats（pending 你说之后再改，我先不动）
   const stats = {
     todayBookings: todayAppointments.length,
     pendingBookings: todayAppointments.filter(
@@ -139,24 +109,6 @@ export default function AdminDashboard() {
     ).length,
     revenue: 0,
   };
-
-  const getStatusColor = (status: string) => {
-    switch ((status || "").toLowerCase()) {
-      case "confirmed":
-        return "bg-success text-success-foreground";
-      case "in-progress":
-        return "bg-warning text-warning-foreground";
-      case "pending":
-        return "bg-muted text-muted-foreground";
-      case "created":
-        return "bg-muted text-muted-foreground";
-      default:
-        return "bg-muted text-muted-foreground";
-    }
-  };
-
-  // ...下面 return 不用动，只要用新数据渲染
-
 
   return (
     <div className="min-h-screen bg-background">
@@ -181,7 +133,6 @@ export default function AdminDashboard() {
               Logout
             </Button>
           </div>
-
         </div>
 
         {/* Stats Cards */}
@@ -247,47 +198,50 @@ export default function AdminDashboard() {
 
                 {!isLoading && !isError && (
                   <div className="space-y-4">
-                    {todayAppointments.length === 0 ? (
+                    {sortedTodayAppointments.length === 0 ? (
                       <div className="text-sm text-muted-foreground">No appointments today.</div>
                     ) : (
-                      todayAppointments.map((appointment: any) => (
-                        <div
-                          key={appointment.id}
-                          onClick={() => navigate(`/admin/appointments/${appointment.id}`)}
-                          className="flex items-center justify-between p-4 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors"
-                        >
-                          <div className="flex items-center space-x-4">
-                            <div className="text-sm font-medium text-foreground min-w-[80px]">
-                              {getAppointmentTimeText(appointment)}
-                            </div>
-                            <div>
-                              <p className="font-medium text-foreground">
-                                {getCustomerName(appointment)}
-                                <span className="mx-2 text-muted-foreground">•</span>
-                                {getCustomerPhone(appointment)}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                {getServiceName(appointment)}
-                              </p>
-                            </div>
-                          </div>
+                      sortedTodayAppointments.map((appointment: any) => {
+                        const meta = getStatusMeta(appointment.status);
 
-                          <div className="flex items-center space-x-3">
-                            <span className="text-sm text-muted-foreground">
-                              {getTechName(appointment)}
-                            </span>
-                            <Badge className={getStatusColor(appointment.status)}>
-                              {(appointment.status || "").toLowerCase()}
-                            </Badge>
+                        return (
+                          <div
+                            key={appointment.id}
+                            onClick={() => navigate(`/admin/appointments/${appointment.id}`)}
+                            className="flex items-center justify-between p-4 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+                          >
+                            <div className="flex items-center space-x-4">
+                              <div className="text-sm font-medium text-foreground min-w-[80px]">
+                                {getAppointmentTimeText(appointment)}
+                              </div>
+                              <div>
+                                <p className="font-medium text-foreground">
+                                  {getCustomerName(appointment)}
+                                  <span className="mx-2 text-muted-foreground">•</span>
+                                  {getCustomerPhone(appointment)}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  {getServiceName(appointment)}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center space-x-3">
+                              <span className="text-sm text-muted-foreground">
+                                {getTechName(appointment)}
+                              </span>
+
+                              <Badge className={meta.className}>
+                                {meta.label}
+                              </Badge>
+                            </div>
                           </div>
-                        </div>
-                      ))
+                        );
+                      })
                     )}
                   </div>
                 )}
               </CardContent>
-
-
             </Card>
           </div>
 
@@ -317,7 +271,6 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
 
-            {/* TODO: Phase 2 Features */}
             <Card className="card-elegant-no-hover mt-6">
               <CardHeader>
                 <CardTitle>Coming Soon</CardTitle>

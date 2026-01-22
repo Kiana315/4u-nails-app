@@ -84,28 +84,6 @@ def get_technician_free_intervals(technician: Technician, date_obj) -> List[tupl
 
     return base
 
-    # # 全店营业时间（已扣 holiday + breaks）
-    # store_open = get_daily_working_intervals(date_obj)
-    # if not store_open:
-    #     return []
-
-    # # 技师上班时间（单独配置）
-    # tech_work = get_technician_working_intervals(technician, date_obj)
-    # if not tech_work:
-    #     return []
-
-    # # 交集 = 当天这个技师理论可上班时间
-    # base = _intersect_intervals(store_open, tech_work)
-    # if not base:
-    #     return []
-
-    # # 扣掉已有预约
-    # apps = Appointment.objects.filter(technician=technician, date=date_obj).values("start_time", "end_time")
-    # busy = [(a["start_time"], a["end_time"]) for a in apps]
-    # if busy:
-    #     base = _subtract_intervals(base, busy)
-
-    # return base
 
 
 
