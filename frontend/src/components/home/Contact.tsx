@@ -31,7 +31,6 @@ const contactInfo = [
     icon: Mail,
     title: 'Email',
     details: 'hello@4unails.com',
-    
   },
 ];
 
