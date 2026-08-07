@@ -1,87 +1,209 @@
-# Nail Bar Web App
+# 4U Nails
 
-A modern, elegant web application for managing a nail salon — including online appointment booking, service listing, and technician scheduling.
+4U Nails is a full-stack salon booking application that gives customers a simple way to explore services, create an account, and book appointments online. Staff can manage services, technicians, schedules, and appointments from an administrative dashboard.
 
-Built with React + Vite (Frontend) and Django + DRF (Backend).
+## Demo Video
 
-Quickstart
+https://github.com/user-attachments/assets/2e12edfa-4226-4082-9d18-54c17bbbcc09
 
-- python -m venv .venv && source .venv/bin/activate
-- pip install -r requirements.txt
-- cp .env.example .env
-- python manage.py migrate
-- python manage.py seed_demo
-- python manage.py runserver
+## Features
 
-Demo users
+### Customer experience
 
-- admin / adminpass
-- tech / techpass
-- customer / customerpass
-Auth (JWT)
+- Browse manicure, pedicure, nail design, and waxing services
+- Register and sign in with secure password validation
+- Select one or multiple services in a single booking
+- Choose a date, technician, and available time slot
+- Add contact details and special requests
+- Review appointment details before confirming
+- View the confirmed services, date, time, technician, customer details, and confirmation number
 
-- POST /api/token/ {"username":"customer","password":"customerpass"}
-- POST /api/token/refresh/
-- GET /api/me/ (Bearer <access>)
+### Staff experience
 
-Public
+- JWT-based authentication and role-based permissions
+- Manage services and technicians
+- View, create, update, and cancel appointments
+- Configure technician availability and working days
+- Access interactive API documentation
 
-- GET /api/services/
-- GET /api/services/{id}/
-- GET /api/slots/?date=YYYY-MM-DD&serviceId=1&technicianId=2
+## Technology Stack
 
-Example slots response
+### Frontend
 
-{
-  "date": "2025-08-23",
-  "serviceId": 1,
-  "technicianId": null,
-  "granularity_min": 15,
-  "slots": ["09:00", "09:15", "09:30"]
-}
+- React 18
+- TypeScript
+- Vite
+- React Router
+- TanStack Query
+- Zustand
+- React Hook Form and Zod
+- Tailwind CSS and shadcn/ui
 
-Customer endpoints
+### Backend
 
-- GET /api/appointments/?my=true
-- POST /api/appointments/
-  - Body: {"service_id":1, "technician_id":2, "date":"2025-08-25", "start_time":"10:00", "notes":"Soft pink"}
-- PATCH /api/appointments/{id}/
-- DELETE /api/appointments/{id}/
+- Python 3.12+
+- Django 5
+- Django REST Framework
+- Simple JWT
+- SQLite for local development
+- PostgreSQL-ready database configuration
+- drf-spectacular / OpenAPI
 
-Admin/Tech
+## Project Structure
 
-- GET /api/admin/dashboard/overview
-- GET /api/admin/appointments/?date=&status=&technicianId=
-- CRUD /api/admin/services/
-- CRUD /api/admin/technicians/
-- POST/PUT /api/admin/schedule/
+```text
+4u-nails-app/
+├── backend/
+│   ├── apps/
+│   │   ├── appointments/
+│   │   ├── core/
+│   │   ├── schedule/
+│   │   ├── services/
+│   │   ├── technicians/
+│   │   └── users/
+│   ├── backend/
+│   ├── manage.py
+│   └── requirements.txt
+├── frontend/
+│   ├── public/
+│   ├── src/
+│   └── package.json
+└── README.md
+```
 
-OpenAPI
+## Local Development
 
-- /api/schema/ (JSON)
-- /api/docs/ (Swagger UI)
+### 1. Clone the repository
 
-Project Tree
+```bash
+git clone https://github.com/Kiana315/4u-nails-app.git
+cd 4u-nails-app
+```
 
-backend/
-  manage.py
-  requirements.txt
-  .env.example
-  backend/
-    settings.py, urls.py, asgi.py, wsgi.py
-  apps/
-    core/, users/, services/, technicians/, schedule/, appointments/
+### 2. Start the backend
 
-Frontend notes
+From the repository root:
 
-- In React, set VITE_API_BASE=http://localhost:8000/api
-- Ensure CORS_ALLOWED_ORIGINS includes your React origin.
+```bash
+cd backend
+python -m venv .venv
+```
 
-Tests
+Activate the virtual environment.
 
-- Run: python manage.py test
-- Covers slot computation, appointment create, permissions.
+Windows PowerShell:
 
-# License
-MIT License
-© 2025 4U Nails
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+macOS or Linux:
+
+```bash
+source .venv/bin/activate
+```
+
+Install dependencies and prepare the database:
+
+```bash
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py seed_demo
+python manage.py runserver
+```
+
+The API will be available at `http://127.0.0.1:8000/api/`.
+
+### 3. Start the frontend
+
+Open a second terminal:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The website will be available at `http://127.0.0.1:5173/`.
+
+## Environment Configuration
+
+Create `frontend/.env`:
+
+```env
+VITE_API_BASE=http://127.0.0.1:8000/api
+```
+
+The backend supports environment variables such as:
+
+```env
+SECRET_KEY=replace-with-a-secure-secret
+DB_URL=sqlite:///db.sqlite3
+TIME_ZONE=America/Edmonton
+CORS_ALLOWED_ORIGINS=http://127.0.0.1:5173,http://localhost:5173
+```
+
+Never commit production secrets to the repository.
+
+## Demo Accounts
+
+After running `python manage.py seed_demo`:
+
+| Role | Username | Password |
+| --- | --- | --- |
+| Administrator | `admin` | `adminpass` |
+| Technician | `tech` | `techpass` |
+| Customer | `customer` | `customerpass` |
+
+These accounts are for local development only.
+
+## Main API Endpoints
+
+### Authentication
+
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| `POST` | `/api/register/` | Register a customer account |
+| `POST` | `/api/token/` | Obtain JWT access and refresh tokens |
+| `POST` | `/api/token/refresh/` | Refresh an access token |
+| `GET` | `/api/me/` | Get the authenticated user |
+
+### Public booking
+
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| `GET` | `/api/services/` | List active services |
+| `GET` | `/api/technicians/` | List active technicians |
+| `GET` | `/api/public/slots/` | Find available appointment times |
+| `POST` | `/api/public/appointments/` | Create an appointment |
+
+Example availability request:
+
+```text
+GET /api/public/slots/?date=2026-08-12&serviceId=1&technicianId=2
+```
+
+### API documentation
+
+- OpenAPI schema: `http://127.0.0.1:8000/api/schema/`
+- Swagger UI: `http://127.0.0.1:8000/api/docs/`
+
+## Testing
+
+Run the backend test suite:
+
+```bash
+cd backend
+python manage.py test
+```
+
+Build the frontend:
+
+```bash
+cd frontend
+npm run build
+```
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
