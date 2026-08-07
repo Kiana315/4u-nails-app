@@ -4,6 +4,10 @@ A modern, elegant web application for managing a nail salon — including online
 
 Built with React + Vite (Frontend) and Django + DRF (Backend).
 
+## Demo Video
+
+[Watch the 4U Nails demo](demo/4U-Nails-English-Demo.webm)
+
 Quickstart
 
 - python -m venv .venv && source .venv/bin/activate
