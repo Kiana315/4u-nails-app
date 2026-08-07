@@ -25,7 +25,7 @@ export function Cards3() {
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
           <h2 className="font-serif text-4xl md:text-5xl font-semibold text-foreground mb-4">
-            Why Choose Bella Nails?
+            Why Choose 4U Nails?
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Discover the perfect blend of artistry, expertise, and luxury that makes every visit exceptional.

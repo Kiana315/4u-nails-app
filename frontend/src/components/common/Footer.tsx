@@ -2,10 +2,10 @@ import { Link } from 'react-router-dom';
 import { Facebook, Instagram, Twitter, Youtube, Heart } from 'lucide-react';
 
 const socialLinks = [
-  { icon: Facebook, href: 'https://facebook.com/bellanails', label: 'Facebook' },
-  { icon: Instagram, href: 'https://instagram.com/bellanails', label: 'Instagram' },
-  { icon: Twitter, href: 'https://twitter.com/bellanails', label: 'Twitter' },
-  { icon: Youtube, href: 'https://youtube.com/bellanails', label: 'YouTube' },
+  { icon: Facebook, href: '', label: 'Facebook' },
+  { icon: Instagram, href: '', label: 'Instagram' },
+  { icon: Twitter, href: '', label: 'Twitter' },
+  { icon: Youtube, href: '', label: 'YouTube' },
 ];
 
 const quickLinks = [
@@ -42,7 +42,7 @@ export function Footer() {
           <div className="lg:col-span-2">
             <div className="flex items-center space-x-2 mb-6">
               <div className="w-8 h-8 bg-primary rounded-full"></div>
-              <span className="font-serif text-2xl font-semibold">Bella Nails</span>
+              <span className="font-serif text-2xl font-semibold">4U Nails</span>
             </div>
             
             <p className="text-background/80 leading-relaxed mb-6 max-w-md">
@@ -106,7 +106,7 @@ export function Footer() {
               </p>
               <p>
                 <strong className="text-background">Email:</strong><br />
-                hello@bellanails.com
+                hello@4unails.com
               </p>
               <p>
                 <strong className="text-background">Hours:</strong><br />
@@ -121,7 +121,7 @@ export function Footer() {
         <div className="py-6 border-t border-background/20">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center space-x-1 text-background/80 mb-4 md:mb-0">
-              <span>© 2024 Bella Nails. Made with</span>
+              <span>© 2024 4U Nails. Made with</span>
               <Heart className="w-4 h-4 text-primary fill-current" />
               <span>for beautiful nails.</span>
             </div>

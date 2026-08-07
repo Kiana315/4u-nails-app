@@ -8,6 +8,7 @@ import RequireAdmin from "./components/auth/RequireAdmin";
 
 import Index from "./pages/public/Index";
 import Login from "./pages/auth/Login";
+import Register from "./pages/auth/Register";
 import BookingFlow from "./pages/booking/BookingFlow";
 // import BookingConfirm from "./pages/booking/BookingConfirm";
 import BookingSuccess from "./pages/booking/BookingSuccess";
@@ -32,6 +33,7 @@ const App = () => {
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
             <Route path="/book" element={<BookingFlow />} />
             {/* <Route path="/book/confirm" element={<BookingConfirm />} /> */}
             <Route path="/book/success" element={<BookingSuccess />} />

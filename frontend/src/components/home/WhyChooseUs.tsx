@@ -40,7 +40,7 @@ export function WhyChooseUs() {
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
           <h2 className="font-serif text-4xl md:text-5xl font-semibold text-foreground mb-4">
-            The Bella Nails Difference
+            The 4U Nails Difference
           </h2>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
             Experience unmatched quality and service that has made us the premier destination 

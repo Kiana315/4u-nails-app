@@ -11,7 +11,7 @@ const contactInfo = [
   {
     icon: Phone,
     title: 'Phone',
-    details: '(555) 123-4567',
+    details: '(123) 456-7890',
     subtitle: 'Call us anytime',
   },
   {
@@ -23,14 +23,15 @@ const contactInfo = [
   {
     icon: Clock,
     title: 'Hours',
-    details: 'Mon-Sat: 9AM-7PM',
-    subtitle: 'Sun: 10AM-6PM',
+    details: 'Mon-Fri: 10AM-7PM',
+    subtitle: 'Sat: 10AM-5PM',
+    subtitle2: 'Sun: 11AM-5PM',
   },
   {
     icon: Mail,
     title: 'Email',
-    details: 'hello@bellanails.com',
-    subtitle: 'We reply within 2 hours',
+    details: 'hello@4unails.com',
+    
   },
 ];
 
@@ -112,6 +113,11 @@ export function Contact() {
                           <p className="text-sm text-muted-foreground">
                             {info.subtitle}
                           </p>
+                          {info.subtitle2 && (
+                            <p className="text-sm text-muted-foreground">
+                              {info.subtitle2}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </CardContent>

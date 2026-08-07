@@ -11,7 +11,7 @@ export function About() {
             <div className="aspect-square rounded-3xl overflow-hidden shadow-elegant">
               <img 
                 src="https://images.unsplash.com/photo-1560066984-138dadb4c035?w=600&h=600&fit=crop"
-                alt="Bella Nails salon interior"
+                alt="4U Nails salon interior"
                 className="w-full h-full object-cover"
               />
             </div>
@@ -37,7 +37,7 @@ export function About() {
             </h2>
             
             <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
-              Founded with a vision to revolutionize nail care, Bella Nails has become 
+              Founded with a vision to revolutionize nail care, 4U Nails has become
               the premier destination for luxury nail services. Our commitment to excellence, 
               combined with a passion for artistic expression, creates an experience that 
               goes beyond traditional nail care.

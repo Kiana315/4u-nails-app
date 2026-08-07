@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 interface BookingSummaryProps {
+  onNext?: () => void;
   onPrev: () => void;
   currentStep?: number;
   totalSteps?: number;
@@ -120,7 +121,27 @@ export function BookingSummary({ onPrev }: BookingSummaryProps) {
       };
 
       setIsSubmitting(true);
-      await publicApi.createAppointment(payload);
+      const response = await publicApi.createAppointment(payload);
+
+      sessionStorage.setItem(
+        "last-booking-confirmation",
+        JSON.stringify({
+          id: response.data?.id ?? null,
+          services: selectedServices.map((service) => ({
+            id: service.id,
+            name: service.name,
+            duration: service.duration,
+          })),
+          date: selectedDate,
+          startTime: selectedTimeSlot.startTime,
+          endTime: addMinutesToHHMM(selectedTimeSlot.startTime, totalDuration),
+          totalDuration,
+          technician: selectedTechnician?.name ?? "No preference",
+          customerName: customerInfo.name,
+          customerPhone: customerInfo.phone,
+          notes: customerInfo.notes,
+        })
+      );
 
       toast({
         title: "Booking confirmed",
@@ -261,7 +282,7 @@ export function BookingSummary({ onPrev }: BookingSummaryProps) {
           <CardContent className="p-6">
             <div className="flex items-center space-x-3 mb-3">
               <MapPin className="w-5 h-5 text-primary" />
-              <h3 className="font-semibold text-foreground">Bella Nails Salon</h3>
+              <h3 className="font-semibold text-foreground">4U Nails Salon</h3>
             </div>
             <div className="text-sm text-muted-foreground">
               123 Beauty Street, Downtown Beauty District<br />

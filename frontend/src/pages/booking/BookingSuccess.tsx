@@ -1,99 +1,129 @@
-import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { CheckCircle, Calendar, Phone, Mail, MapPin } from 'lucide-react';
+import { Link } from "react-router-dom";
+import { format, parseISO } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { Calendar, CheckCircle, Clock, MapPin, Phone, Sparkles, User } from "lucide-react";
+
+type BookingConfirmation = {
+  id: number | string | null;
+  services: Array<{ id: number | string; name: string; duration: number }>;
+  date: string;
+  startTime: string;
+  endTime: string;
+  totalDuration: number;
+  technician: string;
+  customerName: string;
+  customerPhone: string;
+  notes?: string;
+};
+
+function getConfirmation(): BookingConfirmation | null {
+  try {
+    const value = sessionStorage.getItem("last-booking-confirmation");
+    return value ? JSON.parse(value) : null;
+  } catch {
+    return null;
+  }
+}
 
 export default function BookingSuccess() {
-  return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto text-center">
-          <div className="mb-8">
-            <div className="w-20 h-20 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-6">
-              <CheckCircle className="w-12 h-12 text-success" />
-            </div>
-            
-            <h1 className="font-serif text-4xl font-semibold text-foreground mb-4">
-              Booking Confirmed!
-            </h1>
-            
-            <p className="text-lg text-muted-foreground mb-8">
-              Thank you for choosing Bella Nails! Your appointment has been successfully booked. 
-              We've sent a confirmation email with all the details.
-            </p>
-          </div>
+  const confirmation = getConfirmation();
 
-          <Card className="card-elegant mb-8">
-            <CardContent className="p-8">
-              <h2 className="font-serif text-2xl font-semibold text-foreground mb-6">
-                What's Next?
-              </h2>
-              
-              <div className="grid md:grid-cols-2 gap-6 text-left">
-                <div className="flex items-start space-x-3">
-                  <Mail className="w-5 h-5 text-primary mt-1" />
-                  <div>
-                    <h3 className="font-semibold text-foreground mb-1">Check Your Email</h3>
-                    <p className="text-sm text-muted-foreground">
-                      We've sent you a confirmation with all the appointment details.
-                    </p>
-                  </div>
+  return (
+    <main className="min-h-screen bg-muted/20 px-4 py-12">
+      <div className="mx-auto max-w-2xl">
+        <header className="mb-8 text-center">
+          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-success/10">
+            <CheckCircle className="h-12 w-12 text-success" />
+          </div>
+          <h1 className="font-serif text-4xl font-semibold text-foreground">Booking Confirmed!</h1>
+          <p className="mt-3 text-lg text-muted-foreground">
+            Thank you for choosing 4U Nails. Your appointment has been successfully booked.
+          </p>
+          {confirmation?.id && (
+            <p className="mt-3 text-sm text-muted-foreground">
+              Confirmation number: <span className="font-semibold text-foreground">#{confirmation.id}</span>
+            </p>
+          )}
+        </header>
+
+        {confirmation ? (
+          <Card className="card-elegant-no-hover mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 font-serif text-2xl">
+                <Calendar className="h-5 w-5 text-primary" />
+                Appointment Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div className="flex items-start gap-3">
+                  <Calendar className="mt-0.5 h-5 w-5 text-primary" />
+                  <div><p className="font-medium">Date</p><p className="text-sm text-muted-foreground">{format(parseISO(confirmation.date), "EEEE, MMMM d, yyyy")}</p></div>
                 </div>
-                
-                <div className="flex items-start space-x-3">
-                  <Phone className="w-5 h-5 text-primary mt-1" />
-                  <div>
-                    <h3 className="font-semibold text-foreground mb-1">Call if Needed</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Questions? Call us at (555) 123-4567. We're happy to help.
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start space-x-3">
-                  <Calendar className="w-5 h-5 text-primary mt-1" />
-                  <div>
-                    <h3 className="font-semibold text-foreground mb-1">Prepare for Visit</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Please arrive 10 minutes early for check-in and preparation.
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start space-x-3">
-                  <MapPin className="w-5 h-5 text-primary mt-1" />
-                  <div>
-                    <h3 className="font-semibold text-foreground mb-1">Find Us Easily</h3>
-                    <p className="text-sm text-muted-foreground">
-                      123 Beauty Street, Downtown Beauty District. Free parking available.
-                    </p>
-                  </div>
+                <div className="flex items-start gap-3">
+                  <Clock className="mt-0.5 h-5 w-5 text-primary" />
+                  <div><p className="font-medium">Time</p><p className="text-sm text-muted-foreground">{confirmation.startTime} – {confirmation.endTime}</p></div>
                 </div>
               </div>
+
+              <Separator />
+              <div>
+                <div className="mb-3 flex items-center gap-2"><Sparkles className="h-5 w-5 text-primary" /><p className="font-medium">Services</p></div>
+                <div className="space-y-2">
+                  {confirmation.services.map((service) => (
+                    <div key={service.id} className="flex items-center justify-between rounded-lg bg-muted/40 px-4 py-3">
+                      <span>{service.name}</span><Badge variant="outline">{service.duration} min</Badge>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-3 text-right text-sm font-medium">Total: {confirmation.totalDuration} minutes</p>
+              </div>
+
+              <Separator />
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div className="flex items-start gap-3">
+                  <User className="mt-0.5 h-5 w-5 text-primary" />
+                  <div><p className="font-medium">Technician</p><p className="text-sm text-muted-foreground">{confirmation.technician}</p></div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <User className="mt-0.5 h-5 w-5 text-primary" />
+                  <div><p className="font-medium">Booked for</p><p className="text-sm text-muted-foreground">{confirmation.customerName}</p></div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Phone className="mt-0.5 h-5 w-5 text-primary" />
+                  <div><p className="font-medium">Phone</p><p className="text-sm text-muted-foreground">{confirmation.customerPhone}</p></div>
+                </div>
+              </div>
+
+              {confirmation.notes && (
+                <><Separator /><div><p className="mb-1 font-medium">Notes</p><p className="rounded-lg bg-muted/40 p-3 text-sm text-muted-foreground">{confirmation.notes}</p></div></>
+              )}
             </CardContent>
           </Card>
+        ) : (
+          <Card className="mb-8">
+            <CardContent className="p-6 text-center text-muted-foreground">
+              Appointment details are no longer available in this browser session.
+            </CardContent>
+          </Card>
+        )}
 
-          <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
-              <Link to="/">
-                <Button variant="outline" size="lg">
-                  Back to Home
-                </Button>
-              </Link>
-              
-              <Link to="/book">
-                <Button size="lg" className="btn-hero">
-                  Book Another Appointment
-                </Button>
-              </Link>
-            </div>
-            
-            <p className="text-sm text-muted-foreground">
-              Need to reschedule or cancel? Call us at (555) 123-4567.
-            </p>
-          </div>
+        <Card className="mb-8 bg-primary/5">
+          <CardContent className="flex items-start gap-3 p-5">
+            <MapPin className="mt-0.5 h-5 w-5 text-primary" />
+            <div><p className="font-semibold">4U Nails Salon</p><p className="text-sm text-muted-foreground">123 Beauty Street, Downtown Beauty District<br />Phone: (555) 123-4567</p></div>
+          </CardContent>
+        </Card>
+
+        <div className="flex flex-col justify-center gap-3 sm:flex-row">
+          <Button asChild variant="outline" size="lg"><Link to="/">Back to Home</Link></Button>
+          <Button asChild size="lg" className="btn-hero"><Link to="/book">Book Another Appointment</Link></Button>
         </div>
+        <p className="mt-5 text-center text-sm text-muted-foreground">Please arrive 10 minutes early. To reschedule or cancel, call (555) 123-4567.</p>
       </div>
-    </div>
+    </main>
   );
 }

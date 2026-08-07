@@ -41,7 +41,7 @@ urlpatterns = [
     # TODO: 业务路由（以后逐步加上）
     path("api/", include("apps.services.urls")),
     path("api/", include("apps.appointments.urls")),
-    # path("api/", include("apps.users.urls")),
+    path("api/", include("apps.users.urls")),
     # path("api/", include("apps.schedule.urls")),
     path("api/", include("apps.technicians.urls")),
 

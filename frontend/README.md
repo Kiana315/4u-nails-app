@@ -1,4 +1,4 @@
-# Bella Nails - Nail Salon Booking Web App
+# 4U Nails - Nail Salon Booking Web App
 
 A modern, elegant nail salon booking application built with React, TypeScript, and Tailwind CSS.
 
@@ -213,7 +213,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 Support
 
 For questions or support:
-- 📧 Email: hello@bellanails.com
+- 📧 Email: hello@4unails.com
 - 📞 Phone: (555) 123-4567
 - 🏢 Address: 123 Beauty Street, Downtown Beauty District
 

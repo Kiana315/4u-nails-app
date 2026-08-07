@@ -249,7 +249,7 @@ export default function BookingConfirm() {
                 <div className="bg-muted/30 p-4 rounded-lg">
                   <div className="flex items-center space-x-3 mb-2">
                     <MapPin className="w-4 h-4 text-primary" />
-                    <span className="font-medium">Bella Nails Salon</span>
+                    <span className="font-medium">4U Nails Salon</span>
                   </div>
                   <div className="text-sm text-muted-foreground">
                     123 Beauty Street, Downtown Beauty District

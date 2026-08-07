@@ -78,6 +78,30 @@ export const rawClient = axios.create({
 });
 
 export const auth = {
+  me: async () => {
+    const res = await apiClient.get("/me/");
+    return res.data;
+  },
+
+  register: async (details: {
+    username: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    password: string;
+    password_confirm: string;
+  }) => {
+    const res = await rawClient.post("/register/", details);
+    const access = res.data?.access;
+    const refresh = res.data?.refresh;
+
+    if (!access) throw new Error("No access token returned");
+
+    localStorage.setItem(ACCESS_KEY, access);
+    if (refresh) localStorage.setItem(REFRESH_KEY, refresh);
+    return res;
+  },
+
   login: async (credentials: { username: string; password: string }) => {
     try {
       const res = await rawClient.post("/token/", credentials);
