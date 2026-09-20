@@ -126,6 +126,7 @@ npm run dev
 
 The website will be available at `http://127.0.0.1:5173/`.
 
+<<<<<<< Updated upstream
 ## Environment Configuration
 
 Create `frontend/.env`:
@@ -207,3 +208,39 @@ npm run build
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
+=======
+# License
+MIT License
+© 2025 4U Nails
+
+
+## Guest booking (first implementation step)
+
+Customers can submit `/book` without an account. Name and phone are stored on
+Appointment; no customer account is created. Choosing a technician is optional,
+and unassigned appointments are handled by staff in Django Admin.
+
+Before starting the backend, install `requirements.txt` in your virtual environment
+and run `python manage.py migrate`. Create a staff account with
+`python manage.py createsuperuser`, then add services at `/admin/`.
+If adding technicians, set their role to `technician` and keep them active.
+The frontend uses `VITE_API_URL` as the backend origin (for example,
+`http://localhost:8000`, without `/api`). Restart Vite after changing it.
+
+Public endpoints:
+- GET `/api/services/`: service IDs and names. Writes still require staff access.
+- GET `/api/technicians/`: active technician IDs and usernames only.
+- POST `/api/appointments/`: customer_name, phone_number, service ID,
+  optional technician ID/null, date (YYYY-MM-DD), time (HH:mm), optional notes.
+  Successful creation returns 201; invalid input or a full slot returns 400.
+  Listing, retrieving, updating, or deleting appointments is not exposed here.
+
+Current scheduling limits: the existing 10:00–19:00 quarter-hour choices are
+retained, and new slots default to one appointment across the salon. Date/time
+validation uses Django TIME_ZONE (currently UTC). Technician shifts, service
+duration, salon timezone, and full availability selection are the next step;
+this is not yet a production scheduling system.
+
+Checks: `python manage.py test booking`, and from `frontend`, `npm run lint`
+and `npm run build`.
+>>>>>>> Stashed changes
