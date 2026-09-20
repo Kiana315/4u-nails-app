@@ -31,6 +31,9 @@ export default function AdminAppointmentDetail() {
     queryKey: ["adminServices"],
     queryFn: servicesApi.getAdmin,
   });
+  const { data: technicians = [] } = useQuery({
+    queryKey: ['adminTechnicians'], queryFn: admin.getTechnicians,
+  });
 
   // 用 appt 初始化一个可编辑的 form（首次加载后填充）
   const [form, setForm] = useState<any>(null);
@@ -76,19 +79,18 @@ export default function AdminAppointmentDetail() {
         notes: form.notes,
         services: (form.services || []).map((x: string) => Number(x)),
 
-        // 如果你允许改技师/偏好，再放开：
-        // technician: form.technician,
-        // no_preference: form.no_preference,
+        technician: form.technician,
       };
       return admin.updateAppointment(id!, patch);
     },
-    onSuccess: async () => {
+    onSuccess: async (updated) => {
+      setForm((previous: typeof form) => ({ ...previous, end_time: updated.end_time, technician_display: updated.technician_display }));
       toast({ title: "Saved", description: "Appointment updated successfully.", duration: 3000 });
       await qc.invalidateQueries({ queryKey: ["adminAppointment", id] });
       await qc.invalidateQueries({ queryKey: ["adminAppointments"] }); // 列表也刷新
     },
     onError: (e: any) => {
-      toast({ title: "Save failed", description: e?.message ?? "Please try again.", duration: 3000 });
+      toast({ title: "Save failed", description: e?.response?.data ? JSON.stringify(e.response.data) : e?.message ?? "Please try again.", duration: 6000 });
     },
   });
 
@@ -187,6 +189,19 @@ export default function AdminAppointmentDetail() {
               />
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="appointment-technician">Assigned technician</Label>
+              <Select value={form.technician == null ? 'none' : String(form.technician)}
+                onValueChange={value => setForm({ ...form, technician: value === 'none' ? null : Number(value) })}>
+                <SelectTrigger id="appointment-technician"><SelectValue placeholder="Unassigned" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Unassigned</SelectItem>
+                  {technicians.map((tech: { id: number; name: string; active: boolean; services: number[] }) =>
+                    <SelectItem key={tech.id} value={String(tech.id)} disabled={!tech.active || !form.services.every((id: string) => tech.services.map(String).includes(String(id)))}>{tech.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Only staff who can perform all selected services can be assigned. Availability is checked when saving.</p>
+            </div>
             {/* Status */}
             <div className="space-y-2">
               <Label>Status</Label>
@@ -194,7 +209,7 @@ export default function AdminAppointmentDetail() {
                 value={form.status}
                 onValueChange={(v) => setForm({ ...form, status: v })}
               >
-                <SelectTrigger>
+                <SelectTrigger aria-label="Appointment status">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>

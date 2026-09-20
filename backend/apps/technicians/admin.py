@@ -26,4 +26,5 @@ class TechnicianAdminForm(forms.ModelForm):
 @admin.register(Technician)
 class TechnicianAdmin(admin.ModelAdmin):
     form = TechnicianAdminForm
+    filter_horizontal = ('services',)
     list_display = ("name", "active", "working_days")

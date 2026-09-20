@@ -4,5 +4,6 @@ export type Technician = {
   id: string;
   name: string;
   active: boolean;
+  services: number[];
   working_days: WeekdayKey[]; // ✅ 新增
 };

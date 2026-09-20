@@ -80,11 +80,23 @@ export function DateTimeSelection({ onNext, onPrev }: DateTimeSelectionProps) {
       }));
   }, [techRes]);
 
-  // ✅ 判断技师当天是否上班：没设置 working_days → 默认每天都上班（更友好）
+  const canProvideServices = (tech: Technician) => selectedServices.every(service =>
+    (tech.services || []).map(String).includes(String(service.id)));
+
+  useEffect(() => {
+    if (!selectedTechnician || techLoading) return;
+    const current = technicians.find(t => String(t.id) === String(selectedTechnician.id));
+    if (!current || !selectedServices.every(s => (current.services || []).map(String).includes(String(s.id)))) {
+      setSelectedTechnician(null);
+      setSelectedTimeSlot(null);
+    }
+  }, [technicians, techLoading, selectedServices, selectedTechnician, setSelectedTechnician, setSelectedTimeSlot]);
+
+  // ✅ 判断技师当天是否上班：没设置 working_days → 休息
   const isTechWorkingThatDay = (t: Technician) => {
     if (!selectedDayKey) return true; // 还没选日期，不禁用
     const days = normalizeWorkingDays((t as any).working_days);
-    if (days.length === 0) return true;
+    if (days.length === 0) return false;
     return days.includes(selectedDayKey);
   };
 
@@ -102,9 +114,7 @@ export function DateTimeSelection({ onNext, onPrev }: DateTimeSelectionProps) {
   }, [selectedDate]);
 
   // 2) Slots：必须先选 date；tech 可选
-  const serviceId = selectedServices[0]?.id
-    ? String(selectedServices[0].id)
-    : "";
+  const serviceIds = selectedServices.map(service => String(service.id)).sort().join(',');
 
   const techId = selectedTechnician?.id
     ? String(selectedTechnician.id)
@@ -113,14 +123,14 @@ export function DateTimeSelection({ onNext, onPrev }: DateTimeSelectionProps) {
   const dateStr = selectedDate ?? "";
 
   const { data: slotsRes, isLoading: slotsLoading, isError: slotsError } = useQuery({
-    queryKey: ["slots", dateStr, serviceId, techId],
+    queryKey: ["slots", dateStr, serviceIds, techId],
     queryFn: () =>
       slots.getAvailable({
         date: dateStr,
-        serviceId,
+        serviceIds,
         technicianId: techId || undefined,
       }),
-    enabled: !!dateStr && !!serviceId,
+    enabled: !!dateStr && !!serviceIds,
     retry: false,
   });
 
@@ -144,6 +154,10 @@ export function DateTimeSelection({ onNext, onPrev }: DateTimeSelectionProps) {
   }, [slotsRes]);
 
 
+
+  useEffect(() => {
+    setSelectedTimeSlot(null);
+  }, [serviceIds, techId, setSelectedTimeSlot]);
 
   const handleDateSelect = (date: Date | undefined) => {
     if (!date) return;
@@ -229,7 +243,7 @@ export function DateTimeSelection({ onNext, onPrev }: DateTimeSelectionProps) {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="font-semibold">No preference</p>
-                      <p className="text-sm text-muted-foreground">Any available technician</p>
+                      <p className="text-sm text-muted-foreground">Staff will arrange your technician later.</p>
                     </div>
                     <Badge variant="secondary">Any</Badge>
                   </div>
@@ -238,7 +252,8 @@ export function DateTimeSelection({ onNext, onPrev }: DateTimeSelectionProps) {
                 {/* Real technicians */}
                 {technicians.map((t) => {
                   const isSelected = selectedTechnician?.id === t.id;
-                  const disabled = !isTechWorkingThatDay(t);
+                  const qualified = canProvideServices(t);
+                  const disabled = !qualified || !isTechWorkingThatDay(t);
 
                   return (
                     <button
@@ -254,11 +269,12 @@ export function DateTimeSelection({ onNext, onPrev }: DateTimeSelectionProps) {
                         isSelected ? "ring-2 ring-primary border-primary/40 bg-primary/5" : "",
                       ].join(" ")}
                       aria-disabled={disabled}
+                      disabled={disabled}
                     >
                       <div className="space-y-3">
                         <div className="flex items-center justify-between gap-2">
                           <p className="font-semibold truncate">{t.name}</p>
-                          {disabled ? <Badge variant="secondary">Off</Badge> : <Badge variant="default">On</Badge>}
+                          {!qualified ? <Badge variant="secondary">Unavailable for these services</Badge> : disabled ? <Badge variant="secondary">Off</Badge> : <Badge variant="default">On</Badge>}
                         </div>
 
                         <div className="h-px bg-border/60" />

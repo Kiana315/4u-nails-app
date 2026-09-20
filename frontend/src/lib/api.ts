@@ -22,8 +22,7 @@ const unwrapList = (data: any) =>
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem(ACCESS_KEY);
   if (token) {
-    config.headers = config.headers ?? {};
-    (config.headers as any)["Authorization"] = `Bearer ${token}`;
+    config.headers.set("Authorization", `Bearer ${token}`);
   }
   return config;
 });
@@ -172,7 +171,7 @@ export const admin = {
 
   createService: (service: any) => apiClient.post("/admin/services/", service),
   updateService: (id: string, service: any) => apiClient.patch(`/admin/services/${id}/`, service),
-  deleteService: (id: string) => apiClient.delete(`/admin/services/${id}/`),
+  deleteService: (id: string | number) => apiClient.delete(`/admin/services/${id}/`),
 
   getTechnicians: async () => {
     const res = await apiClient.get("/admin/technicians/");
@@ -180,7 +179,7 @@ export const admin = {
   },
   createTechnician: (technician: any) => apiClient.post("/admin/technicians/", technician),
   updateTechnician: (id: string, technician: any) => apiClient.patch(`/admin/technicians/${id}/`, technician),
-  deleteTechnician: (technician: any) => apiClient.delete(`/admin/technicians/${id}/`),
+  deleteTechnician: (id: string | number) => apiClient.delete(`/admin/technicians/${id}/`),
 
   getAppointmentById: async (id: string) => {
     const res = await apiClient.get(`/admin/appointments/${id}/`);
@@ -201,7 +200,7 @@ export const admin = {
 export const slots = {
   getAvailable: async (params: {
     date: string;          // "2026-01-15"
-    serviceId: string;     // "9"
+    serviceIds: string;    // Comma-separated selected service IDs
     technicianId?: string; // optional
   }) => {
     const res = await apiClient.get("/public/slots/", { params });

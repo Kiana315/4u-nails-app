@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { admin as adminApi } from "@/lib/api";
+import { admin as adminApi, services as servicesApi } from "@/lib/api";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -50,6 +50,7 @@ type Technician = {
   name: string;
   active: boolean;
   working_days?: WeekdayKey[]; // ✅ 新增
+  services: number[];
 };
 
 function normalizeDays(days: any): WeekdayKey[] {
@@ -71,6 +72,9 @@ export default function TechAdminPage() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [serviceOptions, setServiceOptions] = useState<{ id: number; name: string; is_active: boolean }[]>([]);
+  const [newServices, setNewServices] = useState<number[]>([]);
+  const [editingServices, setEditingServices] = useState<number[]>([]);
 
   // Create form
   const [name, setName] = useState("");
@@ -93,12 +97,14 @@ export default function TechAdminPage() {
     setError("");
     setLoading(true);
     try {
-      const list = await adminApi.getTechnicians(); // Technician[]
+      const [list, availableServices] = await Promise.all([adminApi.getTechnicians(), servicesApi.getAdmin()]);
+      setServiceOptions(availableServices);
       const normalized: Technician[] = (Array.isArray(list) ? list : []).map((t: any) => ({
         id: t.id,
         name: t.name,
         active: !!t.active,
         working_days: normalizeDays(t.working_days),
+        services: (t.services || []).map(Number),
       }));
       setItems(normalized);
     } catch (e: any) {
@@ -121,8 +127,10 @@ export default function TechAdminPage() {
         name,
         active,
         working_days: newWorkingDays, // ✅ 发送工作日
+        services: newServices,
       });
       setName("");
+      setNewServices([]);
       setActive(true);
       setNewWorkingDays(["mon", "tue", "wed", "thu", "fri"]);
       toast({ title: "Technician created", description: "Staff member added." });
@@ -180,6 +188,7 @@ export default function TechAdminPage() {
   function openEditDays(t: Technician) {
     setEditing(t);
     setEditingDays(normalizeDays(t.working_days));
+    setEditingServices(t.services);
   }
 
   async function saveEditDays() {
@@ -187,8 +196,8 @@ export default function TechAdminPage() {
     setError("");
     setEditSaving(true);
     try {
-      await adminApi.updateTechnician(String(editing.id), { working_days: editingDays });
-      toast({ title: "Saved", description: `Updated working days for ${editing.name}.` });
+      await adminApi.updateTechnician(String(editing.id), { working_days: editingDays, services: editingServices });
+      toast({ title: "Saved", description: `Updated schedule and services for ${editing.name}.` });
       setEditing(null);
       await reload();
     } catch (e: any) {
@@ -212,7 +221,7 @@ export default function TechAdminPage() {
           <div className="flex items-center gap-3">
             <div>
               <h1 className="font-serif text-3xl font-semibold text-foreground">Manage Staff</h1>
-              <p className="text-muted-foreground mt-1">Add, enable/disable, set working days, and remove technicians.</p>
+              <p className="text-muted-foreground mt-1">Manage technicians, working days and the services they can provide.</p>
             </div>
           </div>
 
@@ -297,6 +306,15 @@ export default function TechAdminPage() {
                 </div>
               </div>
 
+              <fieldset className="rounded-lg border p-4 space-y-3">
+                <legend className="px-1 text-sm font-medium">Available services</legend>
+                <p className="text-xs text-muted-foreground">Select the services this technician can provide. No selection means they cannot be booked.</p>
+                {serviceOptions.map(service => <label key={service.id} className="flex items-center gap-2">
+                  <Checkbox checked={newServices.includes(service.id)} onCheckedChange={checked => setNewServices(prev => checked ? [...prev, service.id] : prev.filter(id => id !== service.id))} />
+                  <span className="text-sm">{service.name}{!service.is_active && ' (inactive)'}</span>
+                </label>)}
+                {serviceOptions.length === 0 && <p className="text-sm text-muted-foreground">Add services before configuring staff capabilities.</p>}
+              </fieldset>
               <Button
                 className="w-full btn-hero"
                 onClick={onCreate}
@@ -363,10 +381,11 @@ export default function TechAdminPage() {
 
                         <Button variant="outline" className="flex-1" onClick={() => openEditDays(t)}>
                           <Settings2 className="w-4 h-4 mr-2" />
-                          Working Days
+                          Edit staff
                         </Button>
                       </div>
 
+                      <p className="mt-3 text-sm text-muted-foreground">Services: {t.services.length ? serviceOptions.filter(s => t.services.includes(s.id)).map(s => s.name).join(', ') : 'None configured — not bookable'}</p>
                       <div className="mt-2">
                         <AlertDialog
                           open={toDelete?.id === t.id}
@@ -413,9 +432,9 @@ export default function TechAdminPage() {
 
         {/* ✅ Edit Working Days Dialog */}
         <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
-          <DialogContent className="sm:max-w-[520px]">
+          <DialogContent className="sm:max-w-[520px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="font-serif">Edit Working Days</DialogTitle>
+              <DialogTitle className="font-serif">Working days & services</DialogTitle>
               <DialogDescription>
                 {editing ? (
                   <>
@@ -453,11 +472,19 @@ export default function TechAdminPage() {
               </div>
             </div>
 
+            <fieldset className="rounded-lg border p-4 space-y-3">
+              <legend className="px-1 font-medium">Available services</legend>
+              {serviceOptions.map(service => <label key={service.id} className="flex items-center gap-2">
+                <Checkbox checked={editingServices.includes(service.id)} onCheckedChange={checked => setEditingServices(prev => checked ? [...prev, service.id] : prev.filter(id => id !== service.id))} />
+                <span>{service.name}{!service.is_active && ' (inactive)'}</span>
+              </label>)}
+              <p className="text-xs text-muted-foreground">No selected services means this technician cannot be booked.</p>
+            </fieldset>
             <DialogFooter className="gap-2 sm:gap-0">
               <Button variant="outline" onClick={() => setEditing(null)} disabled={editSaving}>
                 Cancel
               </Button>
-              <Button className="btn-hero" onClick={saveEditDays} disabled={editSaving || editingDays.length === 0}>
+              <Button className="btn-hero" onClick={saveEditDays} disabled={editSaving}>
                 {editSaving ? "Saving..." : "Save"}
               </Button>
             </DialogFooter>

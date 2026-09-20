@@ -58,7 +58,7 @@ export function ServicesTable() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   // 用 React Query 获取后端数据，并在 select 阶段完成映射
-  const { data: mappedFromApi, isLoading, isError } = useQuery({
+  const { data: mappedFromApi = [], isLoading, isError } = useQuery({
     queryKey: ['services'],
     queryFn: () => api.getAll(), // 返回的是 AxiosResponse
     select: (res) => {

@@ -1,3 +1,4 @@
+import { salon } from '@/lib/salon';
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -285,8 +286,8 @@ export function BookingSummary({ onPrev }: BookingSummaryProps) {
               <h3 className="font-semibold text-foreground">4U Nails Salon</h3>
             </div>
             <div className="text-sm text-muted-foreground">
-              123 Beauty Street, Downtown Beauty District<br />
-              Phone: (555) 123-4567
+              {salon.address}<br />
+              Phone: {salon.phone}
             </div>
           </CardContent>
         </Card>

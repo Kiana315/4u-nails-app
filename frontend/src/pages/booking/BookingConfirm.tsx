@@ -1,3 +1,4 @@
+import { salon } from '@/lib/salon';
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -252,9 +253,9 @@ export default function BookingConfirm() {
                     <span className="font-medium">4U Nails Salon</span>
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    123 Beauty Street, Downtown Beauty District
+                    {salon.address}
                     <br />
-                    Phone: (555) 123-4567
+                    Phone: {salon.phone}
                   </div>
                 </div>
 

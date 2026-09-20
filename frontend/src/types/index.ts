@@ -25,6 +25,8 @@ export interface Technician {
   specialties: string[];
   avatar?: string;
   isAvailable: boolean;
+  services?: (string | number)[];
+  working_days?: string[];
 }
 
 export interface Appointment {

@@ -17,6 +17,7 @@ class Technician(models.Model):
 
     # ✅ 只存工作日：["mon","wed","fri"] 这种
     working_days = models.JSONField(default=list, blank=True)
+    services = models.ManyToManyField('services.Service', blank=True, related_name='technicians')
 
     def __str__(self):
         return self.name

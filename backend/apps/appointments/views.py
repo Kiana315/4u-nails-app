@@ -40,32 +40,31 @@ class PublicSlotsView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
-        date_str = request.query_params.get("date")
-        service_id = request.query_params.get("serviceId")  # 前端现在叫 serviceId
-        tech_id = request.query_params.get("technicianId")  # 可选
-
-        date_obj = parse_date(date_str) if date_str else None
-        if not date_obj or not service_id:
-            return Response({"detail": "date and serviceId are required"}, status=status.HTTP_400_BAD_REQUEST)
-
+        from rest_framework import serializers
+        class SlotQuery(serializers.Serializer):
+            date = serializers.DateField()
+            serviceIds = serializers.CharField(required=False)
+            serviceId = serializers.IntegerField(required=False, min_value=1)
+            technicianId = serializers.IntegerField(required=False, min_value=1)
+        query = SlotQuery(data=request.query_params)
+        query.is_valid(raise_exception=True)
+        data = query.validated_data
         try:
-            service = Service.objects.get(pk=service_id)
-        except Service.DoesNotExist:
-            return Response({"detail": "Service not found"}, status=status.HTTP_404_NOT_FOUND)
-
+            ids = [int(value) for value in data['serviceIds'].split(',')] if 'serviceIds' in data else [data['serviceId']]
+        except (ValueError, KeyError):
+            raise serializers.ValidationError({'serviceIds': 'Select valid services.'})
+        services = list(Service.objects.filter(pk__in=ids, is_active=True))
+        if not ids or len(set(ids)) != len(ids) or len(services) != len(ids) or any(s.duration <= 0 for s in services):
+            raise serializers.ValidationError({'serviceIds': 'Select valid, active services.'})
         technician = None
-        if tech_id:
-            try:
-                technician = Technician.objects.get(pk=tech_id)
-            except Technician.DoesNotExist:
-                return Response({"detail": "Technician not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        slots = compute_available_slots(date_obj, service, technician=technician, step_min=15)
-
+        if data.get('technicianId'):
+            technician = Technician.objects.filter(pk=data['technicianId']).first()
+            if technician is None:
+                raise serializers.ValidationError({'technicianId': 'Technician not found.'})
+        available = compute_available_slots(data['date'], services, technician=technician, step_min=15)
         return Response({
-            "date": date_obj.isoformat(),
-            "serviceId": str(service_id),
-            "technicianId": str(tech_id) if tech_id else None,
-            "stepMin": 315,
-            "slots": [t.strftime("%H:%M") for t in slots],
+            'date': data['date'].isoformat(), 'serviceIds': ids,
+            'technicianId': data.get('technicianId'),
+            'durationMin': sum(s.duration for s in services), 'stepMin': 15,
+            'slots': [t.strftime('%H:%M') for t in available],
         })

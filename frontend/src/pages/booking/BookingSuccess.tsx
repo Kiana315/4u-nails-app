@@ -1,3 +1,4 @@
+import { salon } from '@/lib/salon';
 import { Link } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -114,7 +115,7 @@ export default function BookingSuccess() {
         <Card className="mb-8 bg-primary/5">
           <CardContent className="flex items-start gap-3 p-5">
             <MapPin className="mt-0.5 h-5 w-5 text-primary" />
-            <div><p className="font-semibold">4U Nails Salon</p><p className="text-sm text-muted-foreground">123 Beauty Street, Downtown Beauty District<br />Phone: (555) 123-4567</p></div>
+            <div><p className="font-semibold">4U Nails Salon</p><p className="text-sm text-muted-foreground">{salon.address}<br />Phone: {salon.phone}</p></div>
           </CardContent>
         </Card>
 
@@ -122,7 +123,7 @@ export default function BookingSuccess() {
           <Button asChild variant="outline" size="lg"><Link to="/">Back to Home</Link></Button>
           <Button asChild size="lg" className="btn-hero"><Link to="/book">Book Another Appointment</Link></Button>
         </div>
-        <p className="mt-5 text-center text-sm text-muted-foreground">Please arrive 10 minutes early. To reschedule or cancel, call (555) 123-4567.</p>
+        <p className="mt-5 text-center text-sm text-muted-foreground">Please arrive 10 minutes early. To reschedule or cancel, call {salon.phone}.</p>
       </div>
     </main>
   );

@@ -170,9 +170,9 @@ export default function AdminNewAppointment() {
                   <SelectValue placeholder="Select technician" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">No preference</SelectItem>
+                  <SelectItem value="none">Unassigned (no preference)</SelectItem>
                   {(technicians as any[]).map((t) => (
-                    <SelectItem key={String(t.id)} value={String(t.id)}>
+                    <SelectItem key={String(t.id)} value={String(t.id)} disabled={!t.active || !form.serviceIds.every(id => (t.services || []).map(String).includes(id))}>
                       {t.name}
                     </SelectItem>
                   ))}
